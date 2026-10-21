@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "rooms": {
+      "$code": {
+        "meta": {
+          ".validate": "newData.hasChildren(['code', 'name', 'hostUid']) && newData.child('name').isString() && newData.child('name').val().length <= 30"
+        },
+        "timer": {
+          ".validate": "newData.hasChildren(['phase', 'running']) && newData.child('focusMin').isNumber() && newData.child('breakMin').isNumber()"
+        },
+        "messages": {
+          "$msgId": {
+            ".validate": "newData.hasChildren(['uid', 'name', 'text', 'ts']) && newData.child('text').isString() && newData.child('text').val().length <= 500"
+          }
+        },
+        "board": {
+          "strokes": {
+            "$strokeId": {
+              ".validate": "newData.hasChildren(['uid', 'color', 'pts']) && newData.child('pts').val().length <= 4000"
+            }
+          }
+        }
+      }
+    }
+  }
+}
