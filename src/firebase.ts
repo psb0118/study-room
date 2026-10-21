@@ -14,14 +14,15 @@ import { getDatabase } from 'firebase/database'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? 'AIzaSyBu3jsJixIqsM3rSx4nvwpMcY5qVulAGNM',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? 'wordgame-8e201.firebaseapp.com',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBu3jsJixIqsM3rSx4nvwpMcY5qVulAGNM',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'wordgame-8e201.firebaseapp.com',
   databaseURL:
-    import.meta.env.VITE_FIREBASE_DATABASE_URL ?? 'https://wordgame-8e201-default-rtdb.firebaseio.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? 'wordgame-8e201',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? 'wordgame-8e201.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '603397246848',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '1:603397246848:web:d0c356501e15ece7053b65',
+    import.meta.env.VITE_FIREBASE_DATABASE_URL ||
+    'https://wordgame-8e201-default-rtdb.firebaseio.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'wordgame-8e201',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'wordgame-8e201.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '603397246848',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:603397246848:web:d0c356501e15ece7053b65',
 }
 
 export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId)
