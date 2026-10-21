@@ -1,8 +1,8 @@
 /* =========================================================
    Firebase 웹 앱 설정 (클라이언트용 — 비밀값 아님)
 
-   기본값은 기존 Firebase 프로젝트(wordgame-8e201)를 공용합니다.
-   별도 프로젝트를 쓰려면 환경변수 .env (또는 GitHub Actions 변수
+   대상 프로젝트: study-room-d0c89
+   다른 프로젝트/값을 쓰려면 환경변수 .env (또는 GitHub Actions 변수
    VITE_FIREBASE_*) 로 아래 키를 덮어쓰면 됩니다.
 
    ※ databaseURL 은 반드시 DB의 "루트 URL"이어야 합니다.
@@ -15,7 +15,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
 import { getFirestore } from 'firebase/firestore'
 
-const FALLBACK_DATABASE_URL = 'https://wordgame-8e201-default-rtdb.firebaseio.com'
+const FALLBACK_DATABASE_URL = 'https://study-room-d0c89-default-rtdb.asia-southeast1.firebasedatabase.app'
 
 /** DB 루트 URL 형태가 아니면(콘솔 URL, 자식 경로 포함 등) 사용하지 않는다. */
 function normalizeDatabaseUrl(raw: string | undefined, fallback: string): string {
@@ -30,16 +30,16 @@ function normalizeDatabaseUrl(raw: string | undefined, fallback: string): string
 }
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBu3jsJixIqsM3rSx4nvwpMcY5qVulAGNM',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'wordgame-8e201.firebaseapp.com',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyD0ejZvI_HGfOfpBklb8RuxELxmFROoTko',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'study-room-d0c89.firebaseapp.com',
   databaseURL: normalizeDatabaseUrl(
     import.meta.env.VITE_FIREBASE_DATABASE_URL,
     FALLBACK_DATABASE_URL,
   ),
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'wordgame-8e201',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'wordgame-8e201.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '603397246848',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:603397246848:web:d0c356501e15ece7053b65',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'study-room-d0c89',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'study-room-d0c89.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '916640443953',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:916640443953:web:d9e7a9edd515783a232f10',
 }
 
 export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId)
