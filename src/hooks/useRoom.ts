@@ -29,7 +29,7 @@ export interface RoomActions {
   reset: () => void
   setDurations: (focusMin: number, breakMin: number) => void
   send: (text: string) => void
-  addStroke: (pts: number[], color: string, w: number) => { id: string; saved: Promise<boolean> }
+  addStroke: (pts: number[], color: string, w: number) => { id: string; saved: Promise<string | null> }
   undoStroke: () => void
   eraseAt: (x: number, y: number, tol: number) => void
   clearBoard: () => void
@@ -225,10 +225,13 @@ export function useRoom(code: string, user: User) {
         const node = push(ref(db, `rooms/${code}/board/strokes`))
         const id = node.key ?? `local-${Date.now()}`
         const saved = set(node, { uid: user.uid, color, w, pts })
-          .then(() => true)
+          .then(() => null)
           .catch((err: unknown) => {
             console.error('[board] 그림 저장 실패:', err)
-            return false
+            if (typeof err === 'object' && err !== null && 'code' in err) {
+              return String((err as { code: unknown }).code)
+            }
+            return err instanceof Error ? err.message : 'unknown_error'
           })
         return { id, saved }
       },

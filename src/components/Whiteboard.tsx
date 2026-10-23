@@ -8,7 +8,7 @@ const ERASE_TOL = 10
 interface WhiteboardProps {
   strokes: Stroke[]
   actions: {
-    addStroke: (pts: number[], color: string, w: number) => { id: string; saved: Promise<boolean> }
+    addStroke: (pts: number[], color: string, w: number) => { id: string; saved: Promise<string | null> }
     undoStroke: () => void
     eraseAt: (x: number, y: number, tol: number, viewW: number, viewH: number) => void
     clearBoard: () => void
@@ -196,11 +196,11 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
     setUnsaved((prev) => [...prev, stroke])
     setHint(false)
     setSaveError(null)
-    void saved.then((ok) => {
-      if (ok) {
+    void saved.then((err) => {
+      if (err === null) {
         setConfirmed((prev) => (prev.includes(id) ? prev : [...prev, id]))
       } else {
-        setSaveError('그림 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+        setSaveError(err)
       }
     })
     drawAll()
@@ -320,7 +320,9 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
 
       {saveError && (
         <div className="mb-2 rounded-md bg-red-500/15 px-3 py-2 text-xs text-red-300 ring-1 ring-red-400/30">
-          {saveError} <span className="text-red-400/70">(실시간 DB 규칙을 다시 게시했는지 확인하세요)</span>
+          {saveError === 'permission_denied'
+            ? '그림 저장이 실시간 DB 규칙에 거부됐습니다 — Firebase 콘솔 RTDB "규칙" 탭에서 numChildren가 있는 최신 규칙을 게시했는지 확인하세요.'
+            : `그림 저장 실패 (${saveError})`}
         </div>
       )}
 
