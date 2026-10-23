@@ -18,7 +18,7 @@
         "board": {
           "strokes": {
             "$strokeId": {
-              ".validate": "newData.hasChildren(['uid', 'color', 'pts']) && newData.child('pts').val().length <= 4000"
+              ".validate": "newData.hasChildren(['uid', 'color', 'pts']) && newData.child('pts').numChildren() <= 4000"
             }
           }
         }

@@ -8,7 +8,7 @@ const ERASE_TOL = 10
 interface WhiteboardProps {
   strokes: Stroke[]
   actions: {
-    addStroke: (pts: number[], color: string, w: number) => void
+    addStroke: (pts: number[], color: string, w: number) => { id: string; saved: Promise<boolean> }
     undoStroke: () => void
     eraseAt: (x: number, y: number, tol: number, viewW: number, viewH: number) => void
     clearBoard: () => void
@@ -23,9 +23,16 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef<{ pts: number[]; color: string; w: number } | null>(null)
   const eraseAt = useRef(0)
+  const prevServerLen = useRef(0)
   const [tool, setTool] = useState<'pen' | 'erase'>('pen')
   const [color, setColor] = useState(PALETTE[0])
   const [width, setWidth] = useState(4)
+  const [big, setBig] = useState(false)
+  const [hint, setHint] = useState(true)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  // 저장 확인 전/실패한 획 — 서버 롤백으로 사라지지 않도록 로컬에서 유지
+  const [unsaved, setUnsaved] = useState<Stroke[]>([])
+  const [confirmed, setConfirmed] = useState<string[]>([])
 
   const drawAll = () => {
     const canvas = canvasRef.current
@@ -39,7 +46,7 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
     ctx.clearRect(0, 0, w, h)
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    const all = [...strokes]
+    const all = [...strokes, ...unsaved]
     const local = drawing.current
     if (local) {
       all.push({ id: '__local__', uid: '', color: local.color, w: local.w, pts: local.pts })
@@ -74,13 +81,54 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(drawAll, [strokes])
+  // 저장 확인된 획은 서버 목록으로 전환 (실패한 건 로컬 유지)
+  useEffect(() => {
+    setUnsaved((prev) =>
+      prev.filter((s) => !(confirmed.includes(s.id) && strokes.some((t) => t.id === s.id))),
+    )
+  }, [strokes, confirmed])
+
+  // 힌트 문구: 그린 뒤에는 지울 때까지 숨김
+  useEffect(() => {
+    const n = strokes.length
+    if (n > 0 || unsaved.length > 0) setHint(false)
+    else if (prevServerLen.current > 0) setHint(true)
+    prevServerLen.current = n
+  }, [strokes.length, unsaved.length])
+
+  useEffect(() => {
+    drawAll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strokes, unsaved])
+
+  useEffect(() => {
+    if (!big) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setBig(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [big])
 
   const norm = (e: React.PointerEvent<HTMLCanvasElement>): [number, number] => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     const y = (e.clientY - rect.top) / rect.height
     return [r4(Math.min(1, Math.max(0, x))), r4(Math.min(1, Math.max(0, y)))]
+  }
+
+  const eraseLocal = (x: number, y: number, tol: number, vw: number, vh: number) => {
+    setUnsaved((prev) =>
+      prev.filter((s) => {
+        const r = s.w / 2 + tol
+        for (let i = 0; i + 1 < s.pts.length; i += 2) {
+          const dx = s.pts[i] * vw - x
+          const dy = s.pts[i + 1] * vh - y
+          if (dx * dx + dy * dy <= r * r) return false
+        }
+        return true
+      }),
+    )
   }
 
   const doErase = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -90,6 +138,7 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
     const now = Date.now()
     if (now - eraseAt.current < 70) return
     eraseAt.current = now
+    eraseLocal(x, y, ERASE_TOL, rect.width, rect.height)
     actions.eraseAt(x, y, ERASE_TOL, rect.width, rect.height)
   }
 
@@ -138,15 +187,53 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
   const onUp = () => {
     const cur = drawing.current
     drawing.current = null
-    if (cur && cur.pts.length >= 4) {
-      actions.addStroke(cur.pts, cur.color, cur.w)
-    } else {
+    if (!cur || cur.pts.length < 4) {
       drawAll()
+      return
     }
+    const { id, saved } = actions.addStroke(cur.pts, cur.color, cur.w)
+    const stroke: Stroke = { id, uid: '', color: cur.color, w: cur.w, pts: cur.pts }
+    setUnsaved((prev) => [...prev, stroke])
+    setHint(false)
+    setSaveError(null)
+    void saved.then((ok) => {
+      if (ok) {
+        setConfirmed((prev) => (prev.includes(id) ? prev : [...prev, id]))
+      } else {
+        setSaveError('그림 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+      }
+    })
+    drawAll()
+  }
+
+  const undo = () => {
+    if (unsaved.length > 0) {
+      const last = unsaved[unsaved.length - 1]
+      setUnsaved((prev) => prev.slice(0, -1))
+      setConfirmed((prev) => prev.filter((x) => x !== last.id))
+      return
+    }
+    actions.undoStroke()
+  }
+
+  const clearAll = () => {
+    if (!window.confirm('화이트보드를 모두 지울까요?')) return
+    actions.clearBoard()
+    setUnsaved([])
+    setConfirmed([])
+    setSaveError(null)
+    setHint(true)
+    drawAll()
   }
 
   return (
-    <section className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+    <section
+      className={
+        big
+          ? 'fixed inset-0 z-50 flex flex-col bg-slate-950/95 p-3 backdrop-blur'
+          : 'flex min-h-0 flex-col rounded-2xl border border-white/10 bg-slate-900/60 p-4'
+      }
+    >
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <h2 className="mr-auto text-sm font-semibold text-slate-300">화이트보드</h2>
 
@@ -181,7 +268,9 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
                 setTool('pen')
               }}
               aria-label={`색상 ${c}`}
-              className={`h-6 w-6 rounded-full ring-2 transition ${color === c && tool === 'pen' ? 'ring-white' : 'ring-transparent'}`}
+              className={`h-6 w-6 rounded-full ring-2 transition ${
+                color === c && tool === 'pen' ? 'ring-white' : 'ring-transparent'
+              }`}
               style={{ backgroundColor: c }}
             />
           ))}
@@ -206,24 +295,40 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={actions.undoStroke}
+            onClick={undo}
             className="rounded-md bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10"
           >
             되돌리기
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm('화이트보드를 모두 지울까요?')) actions.clearBoard()
-            }}
+            onClick={clearAll}
             className="rounded-md bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10"
           >
             전체 지우기
           </button>
+          <button
+            type="button"
+            onClick={() => setBig((v) => !v)}
+            className="rounded-md bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10"
+            title={big ? '작게 보기 (Esc)' : '캔버스 크게 보기'}
+          >
+            {big ? '작게 ⤡' : '크게 ⛶'}
+          </button>
         </div>
       </div>
 
-      <div className="relative min-h-[360px] flex-1 overflow-hidden rounded-xl border border-white/10 bg-slate-950/70">
+      {saveError && (
+        <div className="mb-2 rounded-md bg-red-500/15 px-3 py-2 text-xs text-red-300 ring-1 ring-red-400/30">
+          {saveError} <span className="text-red-400/70">(실시간 DB 규칙을 다시 게시했는지 확인하세요)</span>
+        </div>
+      )}
+
+      <div
+        className={`relative min-h-[460px] flex-1 touch-none overflow-hidden rounded-xl border border-white/10 bg-slate-950/70 ${
+          big ? 'min-h-0' : ''
+        }`}
+      >
         <canvas
           ref={canvasRef}
           className="absolute inset-0 h-full w-full touch-none"
@@ -233,10 +338,19 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
           onPointerUp={onUp}
           onPointerCancel={onUp}
         />
-        {strokes.length === 0 && (
+        {hint && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-slate-600">
             여기에 함께 그려보세요
           </div>
+        )}
+        {big && (
+          <button
+            type="button"
+            onClick={() => setBig(false)}
+            className="absolute top-2 right-2 rounded-md bg-white/10 px-2.5 py-1.5 text-xs text-slate-200 transition hover:bg-white/20"
+          >
+            닫기 (Esc)
+          </button>
         )}
       </div>
     </section>

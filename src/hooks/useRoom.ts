@@ -29,7 +29,7 @@ export interface RoomActions {
   reset: () => void
   setDurations: (focusMin: number, breakMin: number) => void
   send: (text: string) => void
-  addStroke: (pts: number[], color: string, w: number) => void
+  addStroke: (pts: number[], color: string, w: number) => { id: string; saved: Promise<boolean> }
   undoStroke: () => void
   eraseAt: (x: number, y: number, tol: number) => void
   clearBoard: () => void
@@ -222,12 +222,15 @@ export function useRoom(code: string, user: User) {
         })
       },
       addStroke: (pts, color, w) => {
-        void push(ref(db, `rooms/${code}/board/strokes`), {
-          uid: user.uid,
-          color,
-          w,
-          pts,
-        })
+        const node = push(ref(db, `rooms/${code}/board/strokes`))
+        const id = node.key ?? `local-${Date.now()}`
+        const saved = set(node, { uid: user.uid, color, w, pts })
+          .then(() => true)
+          .catch((err: unknown) => {
+            console.error('[board] 그림 저장 실패:', err)
+            return false
+          })
+        return { id, saved }
       },
       undoStroke: () => {
         const own = strokes.filter((s) => s.uid === user.uid)
