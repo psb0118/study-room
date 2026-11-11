@@ -230,12 +230,12 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
     <section
       className={
         big
-          ? 'fixed inset-0 z-50 flex flex-col bg-[#f6f7fb]/95 p-3 backdrop-blur'
+          ? 'fixed inset-0 z-50 flex flex-col bg-[#faf8ff]/95 p-3 backdrop-blur'
           : 'surface flex min-h-0 flex-col p-4'
       }
     >
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h2 className="mr-auto text-sm font-extrabold text-[#202538]">
+        <h2 className="mr-auto text-sm font-extrabold text-[#3d3a55]">
           화이트보드
         </h2>
 
@@ -245,8 +245,8 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
             onClick={() => setTool('pen')}
             className={`rounded-md px-2.5 py-1.5 text-xs font-bold transition ${
               tool === 'pen'
-                ? 'bg-[#5969df] text-white'
-                : 'bg-[#f5f6fa] text-[#62687d] hover:bg-[#eef0ff]'
+                ? 'bg-[#7c74f0] text-white'
+                : 'bg-[#f7f4ff] text-[#706d8a] hover:bg-[#f1eeff]'
             }`}
           >
             ✏️ 펜
@@ -257,7 +257,7 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
             className={`rounded-md px-2.5 py-1.5 text-xs font-bold transition ${
               tool === 'erase'
                 ? 'bg-[#d97706] text-white'
-                : 'bg-[#f5f6fa] text-[#62687d] hover:bg-[#fff1e3]'
+                : 'bg-[#f7f4ff] text-[#706d8a] hover:bg-[#fff1e8]'
             }`}
           >
             🧽 지우개
@@ -276,7 +276,7 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
               aria-label={`색상 ${c}`}
               className={`h-6 w-6 rounded-full ring-2 transition ${
                 color === c && tool === 'pen'
-                  ? 'ring-[#5969df]'
+                  ? 'ring-[#7c74f0]'
                   : 'ring-transparent'
               }`}
               style={{ backgroundColor: c }}
@@ -293,12 +293,12 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
               aria-label={`굵기 ${w}`}
               className={`flex h-6 w-6 items-center justify-center rounded-md transition ${
                 width === w
-                  ? 'bg-[#eef0ff]'
-                  : 'bg-[#f5f6fa] hover:bg-[#eceef5]'
+                  ? 'bg-[#f1eeff]'
+                  : 'bg-[#f7f4ff] hover:bg-[#f1eef9]'
               }`}
             >
               <span
-                className="block rounded-full bg-[#52586e]"
+                className="block rounded-full bg-[#5f5c78]"
                 style={{ width: w + 2, height: w + 2 }}
               />
             </button>
@@ -309,21 +309,21 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
           <button
             type="button"
             onClick={undo}
-            className="rounded-md bg-[#f5f6fa] px-2.5 py-1.5 text-xs font-bold text-[#62687d] transition hover:bg-[#eef0ff] hover:text-[#5969df]"
+            className="rounded-md bg-[#f7f4ff] px-2.5 py-1.5 text-xs font-bold text-[#706d8a] transition hover:bg-[#f1eeff] hover:text-[#7c74f0]"
           >
             되돌리기
           </button>
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-md bg-[#f5f6fa] px-2.5 py-1.5 text-xs font-bold text-[#62687d] transition hover:bg-[#fff0f2] hover:text-[#c84f61]"
+            className="rounded-md bg-[#f7f4ff] px-2.5 py-1.5 text-xs font-bold text-[#706d8a] transition hover:bg-[#ffeff3] hover:text-[#d96a7c]"
           >
             전체 지우기
           </button>
           <button
             type="button"
             onClick={() => setBig((v) => !v)}
-            className="rounded-md bg-[#f5f6fa] px-2.5 py-1.5 text-xs font-bold text-[#62687d] transition hover:bg-[#eef0ff] hover:text-[#5969df]"
+            className="rounded-md bg-[#f7f4ff] px-2.5 py-1.5 text-xs font-bold text-[#706d8a] transition hover:bg-[#f1eeff] hover:text-[#7c74f0]"
             title={big ? '작게 보기 (Esc)' : '캔버스 크게 보기'}
           >
             {big ? '작게 ⤡' : '크게 ⛶'}
@@ -332,7 +332,7 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
       </div>
 
       {saveError && (
-        <div className="mb-2 rounded-md bg-[#fff0f2] px-3 py-2 text-xs font-medium text-[#c84f61] ring-1 ring-[#f3ced3]">
+        <div className="mb-2 rounded-md bg-[#ffeff3] px-3 py-2 text-xs font-medium text-[#d96a7c] ring-1 ring-[#f6d6dd]">
           {saveError === 'permission_denied'
             ? '그림 저장이 실시간 DB 규칙에 거부됐습니다 — Firebase 콘솔 RTDB "규칙" 탭에서 numChildren가 있는 최신 규칙을 게시했는지 확인하세요.'
             : `그림 저장 실패 (${saveError})`}
@@ -340,7 +340,7 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
       )}
 
       <div
-        className={`relative min-h-[460px] flex-1 touch-none overflow-hidden rounded-xl border border-[#e7e9f2] bg-white ${
+        className={`relative min-h-[460px] flex-1 touch-none overflow-hidden rounded-xl border border-[#ece8f7] bg-white ${
           big ? 'min-h-0' : ''
         }`}
       >
@@ -354,7 +354,7 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
           onPointerCancel={onUp}
         />
         {hint && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-[#b0b4c3]">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-[#b8b5c9]">
             여기에 함께 그려보세요
           </div>
         )}
@@ -362,7 +362,7 @@ export function Whiteboard({ strokes, actions }: WhiteboardProps) {
           <button
             type="button"
             onClick={() => setBig(false)}
-            className="absolute top-2 right-2 rounded-md border border-[#e7e9f2] bg-white/90 px-2.5 py-1.5 text-xs font-bold text-[#52586e] transition hover:bg-white"
+            className="absolute top-2 right-2 rounded-md border border-[#ece8f7] bg-white/90 px-2.5 py-1.5 text-xs font-bold text-[#5f5c78] transition hover:bg-white"
           >
             닫기 (Esc)
           </button>

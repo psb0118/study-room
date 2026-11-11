@@ -32,10 +32,10 @@ export function TimerPanel({ timer, members, actions }: TimerPanelProps) {
 
   const chip =
     phase === 'focus'
-      ? 'bg-[#fff0f2] text-[#c84f61] ring-[#f3ced3]'
+      ? 'bg-[#ffeff3] text-[#d96a7c] ring-[#f6d6dd]'
       : phase === 'break'
-        ? 'bg-[#e9f8f1] text-[#278b66] ring-[#cbeedc]'
-        : 'bg-[#f0f2f7] text-[#697088] ring-[#e7e9f2]'
+        ? 'bg-[#e8f8f0] text-[#4faa83] ring-[#d5f1e5]'
+        : 'bg-[#f4f1fb] text-[#77748f] ring-[#ece8f7]'
 
   return (
     <section className="surface p-5">
@@ -46,7 +46,7 @@ export function TimerPanel({ timer, members, actions }: TimerPanelProps) {
           >
             {PHASE_LABEL[phase]}
           </div>
-          <div className="font-mono text-5xl font-extrabold tracking-tight tabular-nums text-[#202538] sm:text-6xl">
+          <div className="font-mono text-5xl font-extrabold tracking-tight tabular-nums text-[#3d3a55] sm:text-6xl">
             {formatMMSS(remain)}
           </div>
         </div>
@@ -68,10 +68,10 @@ export function TimerPanel({ timer, members, actions }: TimerPanelProps) {
         </div>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#edf0f6]">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#f1eef9]">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            phase === 'break' ? 'bg-[#3aa981]' : 'bg-[#6675ea]'
+            phase === 'break' ? 'bg-[#6fc7a6]' : 'bg-[#8d86f5]'
           }`}
           style={{ width: `${prog * 100}%` }}
         />
@@ -95,7 +95,7 @@ export function TimerPanel({ timer, members, actions }: TimerPanelProps) {
           suffix="분"
         />
         {editor && active && (
-          <span className="ml-auto text-xs text-[#9498a7]">
+          <span className="ml-auto text-xs text-[#a8a5bb]">
             {editor.name}님이 마지막으로 조작
           </span>
         )}
@@ -121,23 +121,23 @@ function Stepper({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-semibold text-[#9498a7]">{label}</span>
+      <span className="text-xs font-semibold text-[#a8a5bb]">{label}</span>
       <button
         type="button"
         onClick={() => onChange(Math.max(min, value - 1))}
-        className="h-7 w-7 rounded-md border border-[#e7e9f2] bg-white text-[#52586e] transition hover:border-[#c9cee1] hover:bg-[#fafbfe]"
+        className="h-7 w-7 rounded-md border border-[#ece8f7] bg-white text-[#5f5c78] transition hover:border-[#d4cfe6] hover:bg-[#fbf9ff]"
         aria-label={`${label} 줄이기`}
       >
         −
       </button>
-      <span className="w-14 text-center text-sm font-extrabold tabular-nums text-[#202538]">
+      <span className="w-14 text-center text-sm font-extrabold tabular-nums text-[#3d3a55]">
         {value}
         {suffix}
       </span>
       <button
         type="button"
         onClick={() => onChange(Math.min(max, value + 1))}
-        className="h-7 w-7 rounded-md border border-[#e7e9f2] bg-white text-[#52586e] transition hover:border-[#c9cee1] hover:bg-[#fafbfe]"
+        className="h-7 w-7 rounded-md border border-[#ece8f7] bg-white text-[#5f5c78] transition hover:border-[#d4cfe6] hover:bg-[#fbf9ff]"
         aria-label={`${label} 늘리기`}
       >
         +

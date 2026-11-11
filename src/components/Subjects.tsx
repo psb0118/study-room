@@ -48,7 +48,7 @@ export function Subjects({ planner }: SubjectsProps) {
                     className="h-3 w-3 shrink-0 rounded-full"
                     style={{ backgroundColor: subject.color }}
                   />
-                  <h2 className="truncate font-extrabold text-[#202538]">
+                  <h2 className="truncate font-extrabold text-[#3d3a55]">
                     {subject.name}
                   </h2>
                 </div>
@@ -57,7 +57,7 @@ export function Subjects({ planner }: SubjectsProps) {
                     type="button"
                     onClick={() => setModal(subject)}
                     aria-label={`${subject.name} 수정`}
-                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f5f6fa] text-[#676d80] transition hover:bg-[#eef0ff] hover:text-[#5969df]"
+                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#77748f] transition hover:bg-[#f1eeff] hover:text-[#7c74f0]"
                   >
                     ✎
                   </button>
@@ -68,7 +68,7 @@ export function Subjects({ planner }: SubjectsProps) {
                         void planner.setSubjectArchived(subject.id, false)
                       }
                       aria-label="과목 복원"
-                      className="grid h-8 w-8 place-items-center rounded-md bg-[#f5f6fa] text-[#278b66] transition hover:bg-[#e9f8f1]"
+                      className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#4faa83] transition hover:bg-[#e8f8f0]"
                     >
                       ↶
                     </button>
@@ -85,22 +85,22 @@ export function Subjects({ planner }: SubjectsProps) {
                         }
                       }}
                       aria-label="과목 보관"
-                      className="grid h-8 w-8 place-items-center rounded-md bg-[#f5f6fa] text-[#c84f61] transition hover:bg-[#fff0f2]"
+                      className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
                     >
                       ⌫
                     </button>
                   )}
                 </div>
               </div>
-              <p className="mt-2 text-xs text-[#9498a7]">
+              <p className="mt-2 text-xs text-[#a8a5bb]">
                 {subject.archived
                   ? '보관됨 · 기존 기록은 유지됩니다'
                   : '활성 과목 · 새 계획에 선택 가능'}
               </p>
-              <div className="mt-4 text-xl font-extrabold text-[#202538]">
+              <div className="mt-4 text-xl font-extrabold text-[#3d3a55]">
                 {formatDuration(totals[subject.id] ?? 0)}
               </div>
-              <div className="text-xs text-[#9498a7]">누적 공부 시간</div>
+              <div className="text-xs text-[#a8a5bb]">누적 공부 시간</div>
             </article>
           ))}
         </section>
@@ -221,12 +221,12 @@ function SubjectModal({
               value={color}
               onChange={(e) => setColor(e.target.value)}
               aria-label="직접 색상 선택"
-              className="h-8 w-10 cursor-pointer rounded border border-[#dfe2ec] bg-white"
+              className="h-8 w-10 cursor-pointer rounded border border-[#e4e0f0] bg-white"
             />
           </div>
         </Field>
         {planner.error && (
-          <p className="rounded-lg bg-[#fff0f2] px-3 py-2 text-xs text-[#c84f61]">
+          <p className="rounded-lg bg-[#ffeff3] px-3 py-2 text-xs text-[#d96a7c]">
             {planner.error}
           </p>
         )}

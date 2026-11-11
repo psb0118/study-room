@@ -34,10 +34,10 @@ export function Room({ code, user, onLeave }: RoomProps) {
       <div className="mx-auto flex min-h-screen max-w-md items-center justify-center px-4">
         <div className="surface w-full px-6 py-12 text-center">
           <p className="mb-2 text-4xl">🚪</p>
-          <h1 className="mb-2 text-xl font-extrabold text-[#202538]">
+          <h1 className="mb-2 text-xl font-extrabold text-[#3d3a55]">
             방이 종료되었습니다
           </h1>
-          <p className="mb-6 text-sm text-[#72778d]">
+          <p className="mb-6 text-sm text-[#8b88a3]">
             모든 참가자가 나가서 방이 자동으로 삭제됐어요.
           </p>
           <button type="button" onClick={onLeave} className="btn btn-primary">
@@ -49,24 +49,24 @@ export function Room({ code, user, onLeave }: RoomProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb]">
+    <div className="min-h-screen bg-[#faf8ff]">
       <div className="mx-auto max-w-7xl px-4 py-5">
         <header className="mb-4 flex flex-wrap items-center gap-3">
-          <h1 className="text-lg font-extrabold tracking-[-0.03em] text-[#202538]">
+          <h1 className="text-lg font-extrabold tracking-[-0.03em] text-[#3d3a55]">
             {meta?.name ?? '스터디 룸'}
           </h1>
           <button
             type="button"
             onClick={copyCode}
-            className="rounded-lg border border-[#e7e9f2] bg-white px-3 py-1.5 font-mono text-sm tracking-[0.2em] text-[#5f6579] uppercase transition hover:border-[#d9deee] hover:bg-[#fafbfe]"
+            className="rounded-lg border border-[#ece8f7] bg-white px-3 py-1.5 font-mono text-sm tracking-[0.2em] text-[#5f5c78] uppercase transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff]"
             title="방 코드 복사"
           >
             {code}{' '}
-            <span className="ml-1 text-xs tracking-normal text-[#9498a7]">
+            <span className="ml-1 text-xs tracking-normal text-[#a8a5bb]">
               {copied ? '복사됨!' : '복사'}
             </span>
           </button>
-          <span className="text-xs text-[#9498a7]">
+          <span className="text-xs text-[#a8a5bb]">
             참가자 {members.length}명
           </span>
           <button

@@ -13,7 +13,7 @@ export function Avatar({ name, photo, size = 32 }: AvatarProps) {
         alt={name}
         width={size}
         height={size}
-        className="shrink-0 rounded-full object-cover ring-1 ring-[#e7e9f2]"
+        className="shrink-0 rounded-full object-cover ring-1 ring-[#ece8f7]"
         style={{ width: size, height: size }}
         onError={(e) => {
           e.currentTarget.style.display = 'none'
@@ -23,7 +23,7 @@ export function Avatar({ name, photo, size = 32 }: AvatarProps) {
   }
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#eef0ff] font-bold text-[#5969df] ring-1 ring-[#dfe3fb]"
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#f1eeff] font-bold text-[#7c74f0] ring-1 ring-[#e6e1ff]"
       style={{ width: size, height: size, fontSize: size * 0.42 }}
     >
       {initial}

@@ -7,6 +7,7 @@ import {
   subjectMeta,
   todayKey,
 } from '../lib/planner'
+import { pointsForPlan } from '../lib/points'
 import { addDays } from '../lib/streak'
 import type { View } from './AppShell'
 import {
@@ -62,7 +63,7 @@ export function Schedule({ planner, onNavigate }: ScheduleProps) {
 
       <section className={`${panelClass} p-4`}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-extrabold text-[#202538]">
+          <h2 className="text-sm font-extrabold text-[#3d3a55]">
             {formatDateKey(monday, { month: 'long', day: 'numeric' })} –{' '}
             {formatDateKey(dates[6], { month: 'long', day: 'numeric' })}
           </h2>
@@ -87,19 +88,19 @@ export function Schedule({ planner, onNavigate }: ScheduleProps) {
                   key={key}
                   className={`min-h-[320px] rounded-xl border p-2 ${
                     isToday
-                      ? 'border-[#b9c1fa] bg-[#f7f8ff]'
-                      : 'border-[#e9ebf3] bg-[#fbfcff]'
+                      ? 'border-[#d6d1ff] bg-[#f7f4ff]'
+                      : 'border-[#f0edf9] bg-[#fbf9ff]'
                   }`}
                 >
                   <div className="mb-2 flex items-baseline justify-between px-1">
                     <strong
                       className={`text-xs ${
-                        isToday ? 'text-[#5969df]' : 'text-[#5f6579]'
+                        isToday ? 'text-[#7c74f0]' : 'text-[#5f5c78]'
                       }`}
                     >
                       {formatDateKey(key, { weekday: 'short' })}
                     </strong>
-                    <span className="text-[10px] text-[#9498a7]">
+                    <span className="text-[10px] text-[#a8a5bb]">
                       {new Date(`${key}T12:00:00`).getDate()}일
                     </span>
                   </div>
@@ -107,29 +108,67 @@ export function Schedule({ planner, onNavigate }: ScheduleProps) {
                   {plans.length > 0 ? (
                     plans.map((plan) => {
                       const subject = subjectMeta(plan.subjectId, planner.subjects)
+                      const done = plan.status === 'completed'
+                      const reward = pointsForPlan(plan.targetMinutes)
                       return (
                         <article
                           key={plan.id}
-                          className="mb-2 rounded-lg border-l-[3px] bg-white p-2.5 shadow-[0_3px_8px_rgba(36,41,74,0.04)]"
+                          className={`mb-2 rounded-lg border-l-[3px] p-2.5 shadow-[0_3px_8px_rgba(61,58,85,0.04)] ${
+                            done ? 'bg-[#f5fbf8]' : 'bg-white'
+                          }`}
                           style={{ borderLeftColor: subject.color }}
                         >
-                          <div className="truncate text-[10px] font-bold text-[#9095a7]">
-                            {plan.startTime
-                              ? `${plan.startTime}${plan.endTime ? ` – ${plan.endTime}` : ''}`
-                              : '시간 미정'}{' '}
-                            · {subject.name}
+                          <div className="flex items-start justify-between gap-1">
+                            <div className="min-w-0 truncate text-[10px] font-bold text-[#9692ad]">
+                              {plan.startTime
+                                ? `${plan.startTime}${plan.endTime ? ` – ${plan.endTime}` : ''}`
+                                : '시간 미정'}{' '}
+                              · {subject.name}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void planner.setPlanStatus(
+                                  plan.id,
+                                  done ? 'planned' : 'completed',
+                                )
+                              }
+                              aria-label={done ? '완료 취소' : '완료 표시'}
+                              className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[10px] transition ${
+                                done
+                                  ? 'border-[#ccecdd] bg-[#e8f8f0] text-[#3f9f7f]'
+                                  : 'border-[#e4e0f0] bg-white text-[#b8b5c9] hover:border-[#8d86f5] hover:text-[#6f68e8]'
+                              }`}
+                            >
+                              ✓
+                            </button>
                           </div>
-                          <div className="mt-0.5 text-xs leading-snug font-extrabold text-[#202538]">
+                          <div
+                            className={`mt-0.5 text-xs leading-snug font-extrabold ${
+                              done
+                                ? 'text-[#a8a5bb] line-through'
+                                : 'text-[#3d3a55]'
+                            }`}
+                          >
                             {plan.title}
                           </div>
-                          <div className="mt-1 text-[10px] text-[#9498a7]">
-                            목표 {plan.targetMinutes}분
+                          <div className="mt-1 flex items-center justify-between gap-1 text-[10px] text-[#a8a5bb]">
+                            <span>목표 {plan.targetMinutes}분</span>
+                            <span
+                              className={
+                                done
+                                  ? 'font-bold text-[#3f9f7f]'
+                                  : 'text-[#8b88a3]'
+                              }
+                            >
+                              {done ? `+${reward}P` : `${reward}P`}
+                            </span>
                           </div>
                         </article>
                       )
                     })
                   ) : (
-                    <div className="px-1 py-5 text-center text-[10px] text-[#a2a6b4]">
+                    <div className="px-1 py-5 text-center text-[10px] text-[#aaa7ba]">
                       계획 없음
                     </div>
                   )}

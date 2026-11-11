@@ -32,14 +32,14 @@ export function PageHeader({
   return (
     <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <p className="mb-2 text-[11px] font-extrabold tracking-[0.09em] text-[#5969df] uppercase">
+        <p className="mb-2 text-[11px] font-extrabold tracking-[0.09em] text-[#7c74f0] uppercase">
           {eyebrow}
         </p>
-        <h1 className="text-[clamp(24px,3vw,31px)] leading-[1.22] font-extrabold tracking-[-0.045em] text-[#202538]">
+        <h1 className="text-[clamp(24px,3vw,31px)] leading-[1.22] font-extrabold tracking-[-0.045em] text-[#3d3a55]">
           {title}
         </h1>
         {description && (
-          <p className="mt-2 text-sm text-[#72778d]">{description}</p>
+          <p className="mt-2 text-sm text-[#8b88a3]">{description}</p>
         )}
       </div>
       {action}
@@ -60,12 +60,12 @@ export function Field({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1.5 block text-xs font-bold text-[#5f6579]">
+      <span className="mb-1.5 block text-xs font-bold text-[#5f5c78]">
         {label}
       </span>
       {children}
       {error && (
-        <span className="mt-1 block text-[11px] font-semibold text-[#c84f61]">
+        <span className="mt-1 block text-[11px] font-semibold text-[#d96a7c]">
           {error}
         </span>
       )}
@@ -88,10 +88,10 @@ export function EmptyState({
     <div className="grid min-h-44 place-items-center px-5 py-8 text-center">
       <div>
         <div className="mb-2 text-3xl">{icon}</div>
-        <strong className="mb-1 block text-sm font-extrabold text-[#202538]">
+        <strong className="mb-1 block text-sm font-extrabold text-[#3d3a55]">
           {title}
         </strong>
-        <p className="text-sm leading-relaxed text-[#72778d]">{description}</p>
+        <p className="text-sm leading-relaxed text-[#8b88a3]">{description}</p>
         {action && <div className="mt-4">{action}</div>}
       </div>
     </div>
@@ -123,7 +123,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#191d2d]/45 sm:items-center sm:p-5"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#2f2b45]/45 sm:items-center sm:p-5"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -132,24 +132,24 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`max-h-[92vh] w-full overflow-y-auto rounded-t-[19px] border border-[#e7e9f2] bg-white shadow-[0_24px_70px_rgba(8,11,28,0.25)] sm:rounded-[19px] ${
+        className={`max-h-[92vh] w-full overflow-y-auto rounded-t-[19px] border border-[#ece8f7] bg-white shadow-[0_24px_70px_rgba(8,11,28,0.25)] sm:rounded-[19px] ${
           small ? 'sm:max-w-[420px]' : 'sm:max-w-[610px]'
         }`}
       >
         <header className="flex items-start justify-between gap-4 border-b border-[#eef0f5] px-5 py-4">
           <div>
-            <h2 className="text-lg font-extrabold tracking-[-0.03em] text-[#202538]">
+            <h2 className="text-lg font-extrabold tracking-[-0.03em] text-[#3d3a55]">
               {title}
             </h2>
             {subtitle && (
-              <p className="mt-1 text-xs text-[#72778d]">{subtitle}</p>
+              <p className="mt-1 text-xs text-[#8b88a3]">{subtitle}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#f5f6fa] text-lg text-[#73798c] transition hover:bg-[#eceef5]"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#f7f4ff] text-lg text-[#807d97] transition hover:bg-[#f1eef9]"
           >
             ×
           </button>
@@ -182,8 +182,8 @@ export function PeriodTabs({
           onClick={() => onChange(period)}
           className={`min-h-[33px] rounded-lg px-3 py-1.5 text-xs font-bold transition ${
             value === period
-              ? 'bg-[#eef0ff] text-[#5969df]'
-              : 'text-[#767b8e] hover:bg-[#f4f5fa]'
+              ? 'bg-[#f1eeff] text-[#7c74f0]'
+              : 'text-[#8b88a3] hover:bg-[#f7f4ff]'
           }`}
         >
           {PERIOD_LABEL[period]}
@@ -208,20 +208,20 @@ export function StatCard({
     <div className="surface relative min-h-[132px] overflow-hidden p-5">
       <div
         className={`absolute -right-5 -bottom-6 h-[76px] w-[76px] rounded-full ${
-          accent ? 'bg-[#fff1e7]' : 'bg-[#eef0ff]'
+          accent ? 'bg-[#fff1e8]' : 'bg-[#f1eeff]'
         }`}
       />
       <div className="relative">
-        <div className="text-[13px] font-bold text-[#72778d]">{label}</div>
+        <div className="text-[13px] font-bold text-[#8b88a3]">{label}</div>
         <div
           className={`mt-4 text-[27px] leading-none font-extrabold tracking-[-0.055em] ${
-            accent ? 'text-[#d66f27]' : 'text-[#202538]'
+            accent ? 'text-[#d98a5f]' : 'text-[#3d3a55]'
           }`}
         >
           {value}
         </div>
         {hint && (
-          <div className="mt-1.5 text-xs text-[#9498a7]">{hint}</div>
+          <div className="mt-1.5 text-xs text-[#a8a5bb]">{hint}</div>
         )}
       </div>
     </div>
@@ -247,21 +247,21 @@ export function WeekBars({ days }: { days: DayTotal[] }) {
           key={day.key}
           className="flex h-full min-w-0 flex-1 flex-col items-center gap-1.5"
         >
-          <span className="h-4 text-[10px] text-[#9498a7]">
+          <span className="h-4 text-[10px] text-[#a8a5bb]">
             {day.ms > 0 ? formatDuration(day.ms) : ''}
           </span>
           <div className="flex w-full flex-1 items-end">
             <div
               className={`w-full rounded-t-md transition-all ${
                 day.ms > 0
-                  ? 'bg-gradient-to-t from-[#5969df] to-[#7e8af0]'
-                  : 'bg-[#edf0f6]'
+                  ? 'bg-gradient-to-t from-[#7c74f0] to-[#a9a2fb]'
+                  : 'bg-[#f1eef9]'
               }`}
               style={{ height: `${Math.max(4, (day.ms / max) * 100)}%` }}
               title={`${day.key} · ${formatDuration(day.ms)}`}
             />
           </div>
-          <span className="text-[10px] text-[#9498a7]">{day.label}</span>
+          <span className="text-[10px] text-[#a8a5bb]">{day.label}</span>
         </div>
       ))}
     </div>

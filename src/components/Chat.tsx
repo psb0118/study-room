@@ -29,7 +29,7 @@ export function Chat({ messages, members, currentUid, onSend }: ChatProps) {
 
   return (
     <section className="surface flex min-h-0 flex-col p-5">
-      <h2 className="mb-3 text-sm font-extrabold text-[#202538]">채팅</h2>
+      <h2 className="mb-3 text-sm font-extrabold text-[#3d3a55]">채팅</h2>
       <div
         ref={listRef}
         className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1"
@@ -45,7 +45,7 @@ export function Chat({ messages, members, currentUid, onSend }: ChatProps) {
               <Avatar name={message.name} photo={message.photo} size={26} />
               <div className={`max-w-[75%] ${mine ? 'text-right' : ''}`}>
                 <div
-                  className="mb-0.5 flex items-baseline gap-2 text-[11px] text-[#b0b4c3]"
+                  className="mb-0.5 flex items-baseline gap-2 text-[11px] text-[#b8b5c9]"
                   style={
                     mine ? { justifyContent: 'flex-end' } : undefined
                   }
@@ -53,13 +53,13 @@ export function Chat({ messages, members, currentUid, onSend }: ChatProps) {
                   <span
                     className={
                       mine
-                        ? 'font-bold text-[#5969df]'
-                        : 'font-semibold text-[#72778d]'
+                        ? 'font-bold text-[#7c74f0]'
+                        : 'font-semibold text-[#8b88a3]'
                     }
                   >
                     {mine ? '나' : message.name}
                   </span>
-                  {!member && <span className="text-[#c9ccd8]">(나감)</span>}
+                  {!member && <span className="text-[#d8d3e8]">(나감)</span>}
                   <span>
                     {new Date(message.ts).toLocaleTimeString([], {
                       hour: '2-digit',
@@ -70,8 +70,8 @@ export function Chat({ messages, members, currentUid, onSend }: ChatProps) {
                 <div
                   className={`inline-block rounded-2xl px-3 py-2 text-sm break-words whitespace-pre-wrap ${
                     mine
-                      ? 'bg-[#5969df] text-white'
-                      : 'bg-[#f0f2f7] text-[#202538]'
+                      ? 'bg-[#7c74f0] text-white'
+                      : 'bg-[#f4f1fb] text-[#3d3a55]'
                   }`}
                 >
                   {message.text}
@@ -81,7 +81,7 @@ export function Chat({ messages, members, currentUid, onSend }: ChatProps) {
           )
         })}
         {messages.length === 0 && (
-          <p className="py-6 text-center text-sm text-[#9498a7]">
+          <p className="py-6 text-center text-sm text-[#a8a5bb]">
             대화를 시작해 보세요.
           </p>
         )}

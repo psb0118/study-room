@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { User } from 'firebase/auth'
 import {
   collection,
   deleteDoc,
@@ -83,7 +82,7 @@ export interface ManualRecordInput {
   memo: string
 }
 
-export function usePlanner(user: User) {
+export function usePlanner(uid: string) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [plans, setPlans] = useState<StudyPlan[]>([])
   const [records, setRecords] = useState<StudyRecord[]>([])
@@ -91,16 +90,16 @@ export function usePlanner(user: User) {
   const [error, setError] = useState<string | null>(null)
 
   const subjectsCol = useMemo(
-    () => collection(fs, STUDY_USERS, user.uid, 'subjects'),
-    [user.uid],
+    () => collection(fs, STUDY_USERS, uid, 'subjects'),
+    [uid],
   )
   const plansCol = useMemo(
-    () => collection(fs, STUDY_USERS, user.uid, 'plans'),
-    [user.uid],
+    () => collection(fs, STUDY_USERS, uid, 'plans'),
+    [uid],
   )
   const recordsCol = useMemo(
-    () => collection(fs, STUDY_USERS, user.uid, 'records'),
-    [user.uid],
+    () => collection(fs, STUDY_USERS, uid, 'records'),
+    [uid],
   )
 
   useEffect(() => {

@@ -53,8 +53,8 @@ export function Stats({ planner }: { planner: PlannerApi }) {
       <section className={`${panelClass} mb-4 p-4`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-extrabold text-[#202538]">기간 선택</h2>
-            <p className="mt-0.5 text-xs text-[#9498a7]">원본 공부 기록 기준</p>
+            <h2 className="text-sm font-extrabold text-[#3d3a55]">기간 선택</h2>
+            <p className="mt-0.5 text-xs text-[#a8a5bb]">원본 공부 기록 기준</p>
           </div>
           <PeriodTabs value={period} onChange={setPeriod} />
         </div>
@@ -82,10 +82,10 @@ export function Stats({ planner }: { planner: PlannerApi }) {
       <div className="grid gap-4 lg:grid-cols-3">
         <section className={`${panelClass} p-5 lg:col-span-2`}>
           <div className="mb-4">
-            <h2 className="text-sm font-extrabold text-[#202538]">
+            <h2 className="text-sm font-extrabold text-[#3d3a55]">
               최근 7일 공부 시간
             </h2>
-            <p className="mt-0.5 text-xs text-[#9498a7]">
+            <p className="mt-0.5 text-xs text-[#a8a5bb]">
               기간 선택과 무관하게 최근 7일을 보여줍니다.
             </p>
           </div>
@@ -94,10 +94,10 @@ export function Stats({ planner }: { planner: PlannerApi }) {
 
         <section className={`${panelClass} p-5`}>
           <div className="mb-4">
-            <h2 className="text-sm font-extrabold text-[#202538]">
+            <h2 className="text-sm font-extrabold text-[#3d3a55]">
               과목별 공부 시간
             </h2>
-            <p className="mt-0.5 text-xs text-[#9498a7]">선택한 기간</p>
+            <p className="mt-0.5 text-xs text-[#a8a5bb]">선택한 기간</p>
           </div>
           {entries.length > 0 ? (
             <div className="space-y-3.5">
@@ -110,14 +110,14 @@ export function Stats({ planner }: { planner: PlannerApi }) {
                         className="h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: subject.color }}
                       />
-                      <span className="min-w-0 flex-1 truncate text-[#52586e]">
+                      <span className="min-w-0 flex-1 truncate text-[#5f5c78]">
                         {subject.name}
                       </span>
-                      <span className="shrink-0 text-[#9498a7]">
+                      <span className="shrink-0 text-[#a8a5bb]">
                         {formatDuration(ms)}
                       </span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#edf0f6]">
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#f1eef9]">
                       <div
                         className="h-full rounded-full"
                         style={{

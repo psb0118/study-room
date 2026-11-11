@@ -11,10 +11,12 @@ import {
   type PlanFilters,
   type Period,
 } from '../lib/planner'
+import { pointsForPlan } from '../lib/points'
 import type {
   PlanInput,
   PlanStatus,
   Priority,
+  Role,
   StudyPlan,
   Subject,
 } from '../types'
@@ -34,22 +36,24 @@ import {
 interface PlansProps {
   planner: PlannerApi
   onNavigate: (view: View) => void
+  role?: Role
 }
 
-export function Plans({ planner, onNavigate }: PlansProps) {
+export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
   const [filters, setFilters] = useState<PlanFilters>({
     period: 'all',
     subjectId: 'all',
     status: 'all',
   })
   const [modal, setModal] = useState<'new' | StudyPlan | null>(null)
+  const isParent = role === 'parent'
 
   const activeSubjects = planner.subjects.filter((s) => !s.archived)
   const visible = filterPlans(planner.plans, filters)
 
   const openNew = () => {
     if (activeSubjects.length === 0) {
-      onNavigate('subjects')
+      if (!isParent) onNavigate('subjects')
       return
     }
     setModal('new')
@@ -58,19 +62,35 @@ export function Plans({ planner, onNavigate }: PlansProps) {
   return (
     <div>
       <PageHeader
-        eyebrow="PLAN MANAGEMENT"
-        title="공부 계획"
-        description="날짜와 상태를 정리하고, 오늘 해야 할 일을 선명하게 만드세요."
+        eyebrow={isParent ? 'PARENT PLAN MANAGEMENT' : 'PLAN MANAGEMENT'}
+        title={isParent ? '자녀 공부 일정' : '공부 계획'}
+        description={
+          isParent
+            ? '일정을 추가·삭제하고, 완료된 일정의 체크를 취소할 수 있어요.'
+            : '날짜와 상태를 정리하고, 오늘 해야 할 일을 선명하게 만드세요.'
+        }
         action={
           <div className="flex flex-wrap gap-2">
+            {!isParent && (
+              <button
+                type="button"
+                onClick={() => onNavigate('subjects')}
+                className={ghostButton}
+              >
+                과목 관리
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => onNavigate('subjects')}
-              className={ghostButton}
+              onClick={openNew}
+              disabled={isParent && activeSubjects.length === 0}
+              title={
+                isParent && activeSubjects.length === 0
+                  ? '자녀가 과목을 먼저 추가해야 해요.'
+                  : undefined
+              }
+              className={primaryButton}
             >
-              과목 관리
-            </button>
-            <button type="button" onClick={openNew} className={primaryButton}>
               ＋ 계획 추가
             </button>
           </div>
@@ -78,15 +98,21 @@ export function Plans({ planner, onNavigate }: PlansProps) {
       />
 
       {planner.subjects.length === 0 && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#f3d8a8] bg-[#fff8e8] px-4 py-3 text-sm text-[#8a6e3b]">
-          <span>계획을 만들려면 먼저 과목이 필요해요.</span>
-          <button
-            type="button"
-            onClick={() => onNavigate('subjects')}
-            className="text-xs font-semibold underline underline-offset-2"
-          >
-            과목 추가하기 →
-          </button>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#f2e0bd] bg-[#fff9ec] px-4 py-3 text-sm text-[#8f7b58]">
+          <span>
+            {isParent
+              ? '자녀가 과목을 추가하면 일정을 만들 수 있어요.'
+              : '계획을 만들려면 먼저 과목이 필요해요.'}
+          </span>
+          {!isParent && (
+            <button
+              type="button"
+              onClick={() => onNavigate('subjects')}
+              className="text-xs font-semibold underline underline-offset-2"
+            >
+              과목 추가하기 →
+            </button>
+          )}
         </div>
       )}
 
@@ -151,7 +177,7 @@ export function Plans({ planner, onNavigate }: PlansProps) {
         >
           초기화
         </button>
-        <span className="ml-auto text-xs text-[#9498a7]">
+        <span className="ml-auto text-xs text-[#a8a5bb]">
           {visible.length}개의 계획
         </span>
       </section>
@@ -167,16 +193,16 @@ export function Plans({ planner, onNavigate }: PlansProps) {
               >
                 <span
                   className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: subject?.color ?? '#64748b' }}
+                  style={{ backgroundColor: subject?.color ?? '#8b88a3' }}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-sm font-extrabold text-[#202538]">
+                    <h2 className="text-sm font-extrabold text-[#3d3a55]">
                       {plan.title}
                     </h2>
                     <StatusBadge status={plan.status} />
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#9498a7]">
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#a8a5bb]">
                     <span>{subject?.name ?? '과목 없음'}</span>
                     <span>
                       {new Intl.DateTimeFormat('ko-KR', {
@@ -192,9 +218,20 @@ export function Plans({ planner, onNavigate }: PlansProps) {
                     </span>
                     <span>목표 {plan.targetMinutes}분</span>
                     <span>우선순위 {PRIORITY_LABEL[plan.priority]}</span>
+                    <span
+                      className={
+                        plan.status === 'completed'
+                          ? 'font-bold text-[#3f9f7f]'
+                          : ''
+                      }
+                    >
+                      {plan.status === 'completed'
+                        ? `+${pointsForPlan(plan.targetMinutes)}P 획득`
+                        : `완료 시 ${pointsForPlan(plan.targetMinutes)}P`}
+                    </span>
                   </div>
                   {plan.description && (
-                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-[#72778d]">
+                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-[#8b88a3]">
                       {plan.description}
                     </p>
                   )}
@@ -209,7 +246,7 @@ export function Plans({ planner, onNavigate }: PlansProps) {
                       )
                     }
                     aria-label={`${plan.title} 상태`}
-                    className="rounded-md border border-[#dfe2ec] bg-white px-2 py-1.5 text-xs font-medium text-[#52586e] outline-none focus:border-[#7d8af0]"
+                    className="rounded-md border border-[#e4e0f0] bg-white px-2 py-1.5 text-xs font-medium text-[#5f5c78] outline-none focus:border-[#7d8af0]"
                   >
                     <option value="planned">예정</option>
                     <option value="in_progress">진행 중</option>
@@ -219,7 +256,7 @@ export function Plans({ planner, onNavigate }: PlansProps) {
                     type="button"
                     onClick={() => setModal(plan)}
                     aria-label="계획 수정"
-                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f5f6fa] text-[#676d80] transition hover:bg-[#eef0ff] hover:text-[#5969df]"
+                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#77748f] transition hover:bg-[#f1eeff] hover:text-[#7c74f0]"
                   >
                     ✎
                   </button>
@@ -235,7 +272,7 @@ export function Plans({ planner, onNavigate }: PlansProps) {
                       }
                     }}
                     aria-label="계획 삭제"
-                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f5f6fa] text-[#c84f61] transition hover:bg-[#fff0f2]"
+                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
                   >
                     ⌫
                   </button>
@@ -436,6 +473,11 @@ function PlanModal({
             className={inputClass}
           />
         </Field>
+        <div className="rounded-xl border border-[#e6e1ff] bg-[#f7f4ff] px-3 py-2.5 text-xs leading-relaxed text-[#6a63c9] sm:col-span-2">
+          이 계획을 완료하면{' '}
+          <strong>{pointsForPlan(form.targetMinutes)}P</strong>를 받아요.
+          목표 시간이 길수록 보너스 포인트가 커져요.
+        </div>
         <Field label="상태">
           <select
             value={form.status}
@@ -462,7 +504,7 @@ function PlanModal({
           />
         </Field>
         {planner.error && (
-          <p className="rounded-lg bg-[#fff0f2] px-3 py-2 text-xs text-[#c84f61] sm:col-span-2">
+          <p className="rounded-lg bg-[#ffeff3] px-3 py-2 text-xs text-[#d96a7c] sm:col-span-2">
             {planner.error}
           </p>
         )}

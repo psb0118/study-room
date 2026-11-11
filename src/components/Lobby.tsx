@@ -92,10 +92,10 @@ export function Lobby({ user, onEnter }: LobbyProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <section className={`${panelClass} p-6`}>
-          <h2 className="mb-1 text-lg font-extrabold tracking-[-0.03em] text-[#202538]">
+          <h2 className="mb-1 text-lg font-extrabold tracking-[-0.03em] text-[#3d3a55]">
             새 방 만들기
           </h2>
-          <p className="mb-4 text-sm text-[#72778d]">
+          <p className="mb-4 text-sm text-[#8b88a3]">
             방 코드를 공유하면 친구가 바로 들어올 수 있어요.
           </p>
           <Field label="방 이름">
@@ -117,10 +117,10 @@ export function Lobby({ user, onEnter }: LobbyProps) {
         </section>
 
         <section className={`${panelClass} p-6`}>
-          <h2 className="mb-1 text-lg font-extrabold tracking-[-0.03em] text-[#202538]">
+          <h2 className="mb-1 text-lg font-extrabold tracking-[-0.03em] text-[#3d3a55]">
             코드로 참가
           </h2>
-          <p className="mb-4 text-sm text-[#72778d]">
+          <p className="mb-4 text-sm text-[#8b88a3]">
             받은 6자리 코드를 입력하세요.
           </p>
           <Field label="방 코드">
@@ -150,23 +150,23 @@ export function Lobby({ user, onEnter }: LobbyProps) {
       </div>
 
       {error && (
-        <p className="mt-4 rounded-lg bg-[#fff0f2] px-3 py-2 text-center text-sm text-[#c84f61]">
+        <p className="mt-4 rounded-lg bg-[#ffeff3] px-3 py-2 text-center text-sm text-[#d96a7c]">
           {error}
         </p>
       )}
 
       <section className={`${panelClass} mt-4 p-5`}>
-        <h2 className="mb-3 text-sm font-extrabold text-[#202538]">
+        <h2 className="mb-3 text-sm font-extrabold text-[#3d3a55]">
           스터디 룸에서는 이렇게 공부해요
         </h2>
-        <ul className="grid gap-2 text-sm text-[#5f6280] sm:grid-cols-3">
-          <li className="rounded-lg bg-[#f7f8ff] px-3 py-2.5">
+        <ul className="grid gap-2 text-sm text-[#6d6a85] sm:grid-cols-3">
+          <li className="rounded-lg bg-[#f7f4ff] px-3 py-2.5">
             ◷ 방 전체가 같은 포모도로 타이머를 공유해요
           </li>
-          <li className="rounded-lg bg-[#f7f8ff] px-3 py-2.5">
+          <li className="rounded-lg bg-[#f7f4ff] px-3 py-2.5">
             ✏️ 화이트보드에 함께 그리고 채팅으로 소통해요
           </li>
-          <li className="rounded-lg bg-[#f7f8ff] px-3 py-2.5">
+          <li className="rounded-lg bg-[#f7f4ff] px-3 py-2.5">
             ▤ 집중 시간은 자동으로 공부 기록에 쌓여요
           </li>
         </ul>

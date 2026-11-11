@@ -1,19 +1,92 @@
 rules_version = '2';
 
 // Firestore 보안 규칙
-// - 스터디 룸 학습 기록(studyUsers)은 본인만 읽고 쓴다.
-// - 과목/계획/기록은 studyUsers/{uid} 하위 컬렉션에 저장된다.
-// - 그 외(단어게임 랭킹 leaderboards 등)는 서버(firebase-admin, 서비스 계정)만
-//   접근하며 브라우저 클라이언트의 직접 접근은 전부 차단한다. (치팅 방지)
+// - 학생은 자기 프로필과 플래너 데이터만 수정할 수 있다.
+// - 부모는 6자리 가족 코드로 연결된 자녀의 프로필/계획을 읽고,
+//   계획을 추가·삭제·완료 취소할 수 있다.
+// - 포인트 순위(leaderboard)는 로그인한 사용자에게 공개되는 요약 정보만 담는다.
+// - 그 외 경로는 모두 차단한다.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isParentOf(studentUid) {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/families/$(studentUid)/parents/$(request.auth.uid)
+        );
+    }
+
+    function canReadStudentData(uid) {
+      return isSelf(uid) || isParentOf(uid);
+    }
+
     match /studyUsers/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if canReadStudentData(uid);
+      allow write: if isSelf(uid);
 
       // planner: subjects / plans / records
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /plans/{planId} {
+        allow read, write: if canReadStudentData(uid);
       }
+
+      match /subjects/{subjectId} {
+        allow read: if canReadStudentData(uid);
+        allow write: if isSelf(uid);
+      }
+
+      match /records/{recordId} {
+        allow read: if canReadStudentData(uid);
+        allow write: if isSelf(uid);
+      }
+    }
+
+    // 학생이 만든 6자리 연결 코드. 로그인한 사용자만 코드로 학생을 찾을 수 있다.
+    match /familyCodes/{code} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.studentUid == request.auth.uid;
+      allow delete: if signedIn()
+        && resource.data.studentUid == request.auth.uid;
+    }
+
+    // 부모 연결 문서. 부모는 유효한 코드를 가진 경우에만 자기 연결을 만들 수 있다.
+    match /families/{studentUid} {
+      allow read: if canReadStudentData(studentUid);
+      allow write: if false;
+
+      match /parents/{parentUid} {
+        allow read: if isSelf(studentUid) || isSelf(parentUid);
+        allow create: if signedIn()
+          && request.auth.uid == parentUid
+          && request.resource.data.uid == parentUid
+          && request.resource.data.code is string
+          && exists(
+            /databases/$(database)/documents/familyCodes/$(request.resource.data.code)
+          )
+          && get(
+            /databases/$(database)/documents/familyCodes/$(request.resource.data.code)
+          ).data.studentUid == studentUid;
+        allow delete: if isSelf(studentUid) || isSelf(parentUid);
+        allow update: if false;
+      }
+    }
+
+    // 공개 순위표에는 이름/사진/포인트/레벨만 저장한다.
+    match /leaderboard/{uid} {
+      allow read: if signedIn();
+      allow write: if (isSelf(uid) || isParentOf(uid))
+        && request.resource.data.uid == uid
+        && request.resource.data.points is number
+        && request.resource.data.points >= 0
+        && request.resource.data.level is number
+        && request.resource.data.level >= 1;
     }
 
     match /{document=**} {

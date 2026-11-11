@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import type { User } from 'firebase/auth'
 import type { PlannerApi } from '../hooks/usePlanner'
 import {
   calcStreak,
@@ -10,8 +9,10 @@ import {
   subjectMeta,
   todayKey,
 } from '../lib/planner'
+import { completedPoints, levelInfo, pointsForPlan } from '../lib/points'
 import type { View } from './AppShell'
 import { Avatar } from './Avatar'
+import { PointsCard } from './PointsCard'
 import {
   EmptyState,
   PageHeader,
@@ -24,12 +25,18 @@ import {
 } from './ui'
 
 interface DashboardProps {
-  user: User
+  name: string
+  photo?: string
   planner: PlannerApi
   onNavigate: (view: View) => void
 }
 
-export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
+export function Dashboard({
+  name,
+  photo,
+  planner,
+  onNavigate,
+}: DashboardProps) {
   const { subjects, plans, records, loading } = planner
   const [todayLabel] = useState(() =>
     new Intl.DateTimeFormat('ko-KR', {
@@ -45,7 +52,6 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
   const days = dailyTotals(records)
   const streak = calcStreak(days, today)
   const todayMs = days[today] ?? 0
-  const totalMs = records.reduce((sum, r) => sum + r.durationMs, 0)
   const targetMs = todayPlans.reduce(
     (sum, p) => sum + p.targetMinutes * 60_000,
     0,
@@ -54,13 +60,14 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
     ? Math.min(100, Math.round((todayMs / targetMs) * 100))
     : 0
   const week = recentDays(7, days, today)
+  const points = levelInfo(completedPoints(plans))
 
   return (
     <div>
       <PageHeader
         eyebrow={`TODAY · ${todayLabel}`}
-        title={`${user.displayName ?? '익명'}님, 오늘도 함께 공부해요`}
-        description="개인 계획을 세우고, 스터디 룸에서 실시간으로 집중하세요."
+        title={`${name}님, 오늘도 차근차근 공부해요`}
+        description="계획을 완료할 때마다 포인트가 쌓이고, 100P마다 레벨이 올라가요."
         action={
           <div className="flex flex-wrap gap-2">
             <button
@@ -94,6 +101,11 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
           accent
         />
         <StatCard
+          label="포인트"
+          value={`${points.points}P`}
+          hint={`Lv.${points.level} · ${points.title}`}
+        />
+        <StatCard
           label="오늘 계획"
           value={`${completed}/${todayPlans.length}`}
           hint={
@@ -102,11 +114,6 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
               : '계획을 세워보세요'
           }
         />
-        <StatCard
-          label="누적 공부"
-          value={formatDuration(totalMs)}
-          hint={`${records.length}개의 기록`}
-        />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -114,17 +121,17 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
           <section className={`${panelClass} p-5`}>
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-[15px] font-extrabold tracking-[-0.025em] text-[#202538]">
+                <h2 className="text-[15px] font-extrabold tracking-[-0.025em] text-[#3d3a55]">
                   오늘의 공부 계획
                 </h2>
-                <p className="mt-1 text-xs text-[#9498a7]">
-                  체크해서 바로 완료 상태로 바꿀 수 있어요.
+                <p className="mt-1 text-xs text-[#a8a5bb]">
+                  체크하면 완료되고 포인트가 바로 반영돼요.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigate('plans')}
-                className="shrink-0 text-xs font-bold text-[#5969df] transition hover:text-[#4555cc]"
+                className="shrink-0 text-xs font-bold text-[#7c74f0] transition hover:text-[#655de0]"
               >
                 전체 보기 →
               </button>
@@ -135,10 +142,11 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
                 {todayPlans.map((plan) => {
                   const subject = subjectMeta(plan.subjectId, subjects)
                   const done = plan.status === 'completed'
+                  const reward = pointsForPlan(plan.targetMinutes)
                   return (
                     <li
                       key={plan.id}
-                      className="flex items-center gap-3 rounded-[13px] border border-[#edf0f5] bg-white px-3.5 py-3 transition hover:border-[#d9deee] hover:shadow-[0_5px_15px_rgba(28,33,62,0.04)]"
+                      className="flex items-center gap-3 rounded-[13px] border border-[#f1eef9] bg-white px-3.5 py-3 transition hover:border-[#d8d3e8] hover:shadow-[0_5px_15px_rgba(61,58,85,0.04)]"
                     >
                       <button
                         type="button"
@@ -151,8 +159,8 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
                         aria-label={done ? '완료 취소' : '완료 표시'}
                         className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[11px] transition ${
                           done
-                            ? 'border-[#b9e6d3] bg-[#e9f8f1] text-[#278b66]'
-                            : 'border-[#dfe2ec] bg-white text-transparent hover:border-[#7d8af0]'
+                            ? 'border-[#ccecdd] bg-[#e8f8f0] text-[#3f9f7f]'
+                            : 'border-[#e4e0f0] bg-white text-transparent hover:border-[#8d86f5]'
                         }`}
                       >
                         ✓
@@ -164,12 +172,14 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
                       <div className="min-w-0 flex-1">
                         <div
                           className={`truncate text-sm font-bold ${
-                            done ? 'text-[#9498a7] line-through' : 'text-[#202538]'
+                            done
+                              ? 'text-[#a8a5bb] line-through'
+                              : 'text-[#3d3a55]'
                           }`}
                         >
                           {plan.title}
                         </div>
-                        <div className="mt-0.5 truncate text-[11px] text-[#9498a7]">
+                        <div className="mt-0.5 truncate text-[11px] text-[#a8a5bb]">
                           {subject.name} ·{' '}
                           {plan.startTime
                             ? `${plan.startTime}${plan.endTime ? `–${plan.endTime}` : ''}`
@@ -177,6 +187,13 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
                           · 목표 {plan.targetMinutes}분
                         </div>
                       </div>
+                      <span
+                        className={`hidden shrink-0 text-[11px] font-extrabold sm:block ${
+                          done ? 'text-[#3f9f7f]' : 'text-[#8b88a3]'
+                        }`}
+                      >
+                        {done ? `+${reward}P` : `${reward}P`}
+                      </span>
                       <StatusBadge status={plan.status} />
                     </li>
                   )
@@ -203,17 +220,17 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
           <section className={`${panelClass} p-5`}>
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-[15px] font-extrabold tracking-[-0.025em] text-[#202538]">
+                <h2 className="text-[15px] font-extrabold tracking-[-0.025em] text-[#3d3a55]">
                   최근 7일 공부 시간
                 </h2>
-                <p className="mt-1 text-xs text-[#9498a7]">
+                <p className="mt-1 text-xs text-[#a8a5bb]">
                   스터디 룸 집중과 직접 기록을 합산합니다.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigate('stats')}
-                className="shrink-0 text-xs font-bold text-[#5969df] transition hover:text-[#4555cc]"
+                className="shrink-0 text-xs font-bold text-[#7c74f0] transition hover:text-[#655de0]"
               >
                 통계 →
               </button>
@@ -223,27 +240,29 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
         </div>
 
         <div className="flex flex-col gap-4">
+          <PointsCard points={points.points} />
+
           <section className={`${panelClass} p-5`}>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-[15px] font-extrabold tracking-[-0.025em] text-[#202538]">
+              <h2 className="text-[15px] font-extrabold tracking-[-0.025em] text-[#3d3a55]">
                 오늘 진행률
               </h2>
-              <strong className="text-lg font-extrabold text-[#5969df]">
+              <strong className="text-lg font-extrabold text-[#6f68e8]">
                 {progress}%
               </strong>
             </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-[#edf0f6]">
+            <div className="h-2.5 overflow-hidden rounded-full bg-[#f1eef9]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#6675ea] to-[#8c98f5] transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-[#8d86f5] to-[#b9b4ff] transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="mt-2 flex justify-between text-[11px] text-[#9498a7]">
+            <div className="mt-2 flex justify-between text-[11px] text-[#a8a5bb]">
               <span>공부 {formatDuration(todayMs)}</span>
               <span>목표 {formatDuration(targetMs)}</span>
             </div>
             {targetMs === 0 && (
-              <p className="mt-3 text-xs leading-relaxed text-[#9498a7]">
+              <p className="mt-3 text-xs leading-relaxed text-[#a8a5bb]">
                 오늘 계획을 추가하면 목표 대비 진행률을 계산해 드려요.
               </p>
             )}
@@ -251,16 +270,12 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
 
           <section className={`${panelClass} p-5`}>
             <div className="flex items-center gap-3">
-              <Avatar
-                name={user.displayName ?? '익명'}
-                photo={user.photoURL ?? undefined}
-                size={42}
-              />
+              <Avatar name={name} photo={photo} size={42} />
               <div className="min-w-0">
-                <div className="truncate text-sm font-extrabold text-[#202538]">
-                  {user.displayName ?? '익명'}
+                <div className="truncate text-sm font-extrabold text-[#3d3a55]">
+                  {name}
                 </div>
-                <div className="text-xs text-[#9498a7]">
+                <div className="text-xs text-[#a8a5bb]">
                   오늘도 꾸준히 쌓이는 중
                 </div>
               </div>
@@ -268,31 +283,31 @@ export function Dashboard({ user, planner, onNavigate }: DashboardProps) {
             <div className="mt-4 grid gap-2">
               <button
                 type="button"
+                onClick={() => onNavigate('leaderboard')}
+                className="flex items-center justify-between rounded-lg border border-[#f1eef9] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#5f5c78] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff]"
+              >
+                포인트 순위 <span className="text-[#b8b5c9]">→</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => onNavigate('records')}
-                className="flex items-center justify-between rounded-lg border border-[#edf0f5] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#52586e] transition hover:border-[#d9deee] hover:bg-[#fafbfe]"
+                className="flex items-center justify-between rounded-lg border border-[#f1eef9] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#5f5c78] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff]"
               >
-                공부 기록 보기 <span className="text-[#b0b4c3]">→</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('subjects')}
-                className="flex items-center justify-between rounded-lg border border-[#edf0f5] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#52586e] transition hover:border-[#d9deee] hover:bg-[#fafbfe]"
-              >
-                과목 관리 <span className="text-[#b0b4c3]">→</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('stats')}
-                className="flex items-center justify-between rounded-lg border border-[#edf0f5] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#52586e] transition hover:border-[#d9deee] hover:bg-[#fafbfe]"
-              >
-                기간별 통계 <span className="text-[#b0b4c3]">→</span>
+                공부 기록 보기 <span className="text-[#b8b5c9]">→</span>
               </button>
               <button
                 type="button"
                 onClick={() => onNavigate('schedule')}
-                className="flex items-center justify-between rounded-lg border border-[#edf0f5] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#52586e] transition hover:border-[#d9deee] hover:bg-[#fafbfe]"
+                className="flex items-center justify-between rounded-lg border border-[#f1eef9] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#5f5c78] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff]"
               >
-                주간 시간표 <span className="text-[#b0b4c3]">→</span>
+                주간 시간표 <span className="text-[#b8b5c9]">→</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('family')}
+                className="flex items-center justify-between rounded-lg border border-[#f1eef9] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#5f5c78] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff]"
+              >
+                부모님 연결 <span className="text-[#b8b5c9]">→</span>
               </button>
             </div>
           </section>

@@ -59,7 +59,7 @@ export function Records({ planner, onNavigate }: RecordsProps) {
 
       <section className={`${panelClass} mb-4 flex flex-wrap items-center justify-between gap-3 p-4`}>
         <PeriodTabs value={period} onChange={setPeriod} />
-        <span className="text-xs text-[#9498a7]">{records.length}개의 기록</span>
+        <span className="text-xs text-[#a8a5bb]">{records.length}개의 기록</span>
       </section>
 
       {records.length > 0 ? (
@@ -78,17 +78,17 @@ export function Records({ planner, onNavigate }: RecordsProps) {
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-extrabold text-[#202538]">
+                    <span className="text-sm font-extrabold text-[#3d3a55]">
                       {subject.name}
                     </span>
-                    <span className="text-[11px] text-[#9498a7]">
+                    <span className="text-[11px] text-[#a8a5bb]">
                       {formatDateKey(recordDateKey(record))}
                     </span>
-                    <span className="rounded bg-[#f0f2f7] px-1.5 py-0.5 text-[10px] font-semibold text-[#697088]">
+                    <span className="rounded bg-[#f4f1fb] px-1.5 py-0.5 text-[10px] font-semibold text-[#77748f]">
                       {record.source === 'room' ? '스터디 룸' : '직접 기록'}
                     </span>
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#9498a7]">
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#a8a5bb]">
                     <span>
                       {new Intl.DateTimeFormat('ko-KR', {
                         hour: '2-digit',
@@ -103,7 +103,7 @@ export function Records({ planner, onNavigate }: RecordsProps) {
                     )}
                   </div>
                 </div>
-                <span className="text-sm font-extrabold text-[#5969df]">
+                <span className="text-sm font-extrabold text-[#7c74f0]">
                   {formatDuration(record.durationMs)}
                 </span>
                 <button
@@ -118,7 +118,7 @@ export function Records({ planner, onNavigate }: RecordsProps) {
                     }
                   }}
                   aria-label="기록 삭제"
-                  className="grid h-8 w-8 place-items-center rounded-md bg-[#f5f6fa] text-[#c84f61] transition hover:bg-[#fff0f2]"
+                  className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
                 >
                   ⌫
                 </button>
@@ -292,7 +292,7 @@ function RecordModal({
           />
         </Field>
         {planner.error && (
-          <p className="rounded-lg bg-[#fff0f2] px-3 py-2 text-xs text-[#c84f61] sm:col-span-2">
+          <p className="rounded-lg bg-[#ffeff3] px-3 py-2 text-xs text-[#d96a7c] sm:col-span-2">
             {planner.error}
           </p>
         )}

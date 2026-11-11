@@ -102,6 +102,35 @@ export interface PlanInput {
   memo: string
 }
 
+/* ── 계정 · 가족 · 포인트 ───────────────────────────────── */
+
+export type Role = 'student' | 'parent'
+
+export type ProfileRole = Role | ''
+
+export interface UserProfile {
+  uid: string
+  name: string
+  email: string
+  photo: string
+  role: ProfileRole
+  /** 학생이 부모에게 알려주는 6자리 연결 코드 */
+  familyCode: string
+  /** 부모 계정이 연결한 자녀의 uid */
+  childUid: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface LeaderboardEntry {
+  uid: string
+  name: string
+  photo: string
+  points: number
+  level: number
+  updatedAt: number
+}
+
 export interface StudyRecord {
   id: string
   /** 실제 과목 id 또는 스터디 룸 기록을 뜻하는 특수 id */

@@ -9,12 +9,12 @@ import type {
 import { addDays, dateKey, daysBetween } from './streak'
 
 export const SUBJECT_COLORS = [
-  '#6373e5',
-  '#22a177',
-  '#d47731',
-  '#9b66d1',
-  '#d35d82',
-  '#1594a6',
+  '#7c74f0',
+  '#4faa83',
+  '#d98a5f',
+  '#a78bfa',
+  '#e08aa8',
+  '#5ba8c9',
 ] as const
 
 /** 스터디 룸에서 집중한 시간을 귀속시키는 특수 과목 id */
@@ -171,10 +171,10 @@ export function subjectMeta(
   id: string,
   subjects: Subject[],
 ): { name: string; color: string } {
-  if (id === ROOM_SUBJECT_ID) return { name: '스터디 룸', color: '#64748b' }
+  if (id === ROOM_SUBJECT_ID) return { name: '스터디 룸', color: '#8b88a3' }
   const found = subjects.find((s) => s.id === id)
   if (found) return { name: found.name, color: found.color }
-  return { name: '과목 없음', color: '#64748b' }
+  return { name: '과목 없음', color: '#8b88a3' }
 }
 
 export function formatDuration(ms: number): string {

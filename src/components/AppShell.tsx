@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { User } from 'firebase/auth'
+import type { Role } from '../types'
 import { Avatar } from './Avatar'
 
 export type View =
@@ -10,8 +10,10 @@ export type View =
   | 'records'
   | 'stats'
   | 'schedule'
+  | 'leaderboard'
+  | 'family'
 
-const NAV: { id: View; icon: string; label: string }[] = [
+const STUDENT_NAV: { id: View; icon: string; label: string }[] = [
   { id: 'home', icon: '◒', label: '홈' },
   { id: 'rooms', icon: '◷', label: '스터디 룸' },
   { id: 'plans', icon: '▣', label: '공부 계획' },
@@ -19,14 +21,26 @@ const NAV: { id: View; icon: string; label: string }[] = [
   { id: 'records', icon: '▤', label: '공부 기록' },
   { id: 'stats', icon: '▥', label: '통계' },
   { id: 'schedule', icon: '▦', label: '시간표' },
+  { id: 'leaderboard', icon: '★', label: '포인트 순위' },
+  { id: 'family', icon: '♧', label: '부모님 연결' },
 ]
 
-const MOBILE_NAV = NAV.filter((item) =>
-  ['home', 'plans', 'rooms', 'stats', 'schedule'].includes(item.id),
-)
+const PARENT_NAV: { id: View; icon: string; label: string }[] = [
+  { id: 'home', icon: '◒', label: '자녀 현황' },
+  { id: 'plans', icon: '▣', label: '일정 관리' },
+  { id: 'schedule', icon: '▦', label: '시간표' },
+  { id: 'stats', icon: '▥', label: '통계' },
+  { id: 'leaderboard', icon: '★', label: '포인트 순위' },
+  { id: 'family', icon: '♧', label: '자녀 연결' },
+]
+
+const STUDENT_MOBILE = ['home', 'plans', 'rooms', 'leaderboard', 'family']
+const PARENT_MOBILE = ['home', 'plans', 'stats', 'leaderboard', 'family']
 
 interface AppShellProps {
-  user: User
+  name: string
+  photo?: string
+  role: Role
   view: View
   onNavigate: (view: View) => void
   onLogout: () => void
@@ -34,44 +48,55 @@ interface AppShellProps {
 }
 
 export function AppShell({
-  user,
+  name,
+  photo,
+  role,
   view,
   onNavigate,
   onLogout,
   children,
 }: AppShellProps) {
-  const name = user.displayName ?? '익명'
+  const nav = role === 'parent' ? PARENT_NAV : STUDENT_NAV
+  const mobileIds = role === 'parent' ? PARENT_MOBILE : STUDENT_MOBILE
+  const mobileNav = nav.filter((item) => mobileIds.includes(item.id))
+  const roleLabel = role === 'parent' ? '부모 관리' : '학생 플래너'
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb] lg:flex">
-      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-[#e7e9f2] bg-white/90 px-4 py-[27px] backdrop-blur-xl lg:flex">
+    <div className="min-h-screen bg-transparent lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-[252px] shrink-0 flex-col border-r border-[#ece8f7] bg-white/90 px-4 py-[27px] backdrop-blur-xl lg:flex">
         <div className="mb-7 flex items-center gap-2.5 px-2.5">
-          <span className="grid h-[34px] w-[34px] place-items-center rounded-[11px] bg-gradient-to-br from-[#6f7df0] to-[#4958cf] text-lg text-white shadow-[0_7px_15px_rgba(78,92,207,0.25)]">
+          <span className="grid h-[34px] w-[34px] place-items-center rounded-[11px] bg-gradient-to-br from-[#b9b4ff] to-[#8d86f5] text-lg text-white shadow-[0_7px_15px_rgba(141,134,245,0.3)]">
             ⌁
           </span>
           <div>
-            <div className="text-[21px] leading-none font-extrabold tracking-[-0.04em] text-[#202538]">
+            <div className="text-[21px] leading-none font-extrabold tracking-[-0.04em] text-[#3d3a55]">
               하루결
             </div>
-            <div className="mt-1.5 text-[10px] font-extrabold tracking-[0.09em] text-[#a1a5b5]">
+            <div className="mt-1.5 text-[10px] font-extrabold tracking-[0.09em] text-[#aaa7ba]">
               STUDY ROOM · PLANNER
             </div>
           </div>
         </div>
 
-        <div className="mb-2 px-3 text-[11px] font-extrabold tracking-[0.09em] text-[#a1a5b5]">
-          MENU
+        <div className="mb-2 flex items-center justify-between px-3">
+          <span className="text-[11px] font-extrabold tracking-[0.09em] text-[#aaa7ba]">
+            MENU
+          </span>
+          <span className="rounded-full bg-[#f1eeff] px-2 py-0.5 text-[9px] font-extrabold text-[#6a63c9]">
+            {roleLabel}
+          </span>
         </div>
         <nav className="flex flex-col gap-1">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => onNavigate(item.id)}
+              aria-current={view === item.id ? 'page' : undefined}
               className={`flex w-full items-center gap-3 rounded-[11px] px-3 py-2.5 text-left text-sm font-bold transition ${
                 view === item.id
-                  ? 'bg-[#eef0ff] text-[#5969df]'
-                  : 'text-[#62687d] hover:bg-[#f5f6ff] hover:text-[#5969df]'
+                  ? 'bg-[#f1eeff] text-[#6f68e8]'
+                  : 'text-[#706d8a] hover:bg-[#f7f4ff] hover:text-[#6f68e8]'
               }`}
             >
               <span className="w-5 text-center text-[17px]">{item.icon}</span>
@@ -80,43 +105,48 @@ export function AppShell({
           ))}
         </nav>
 
-        <div className="mt-auto rounded-[14px] border border-[#ebe9fe] bg-[#f9f8ff] p-3.5 text-xs leading-relaxed text-[#5f6280]">
+        <div className="mt-auto rounded-[14px] border border-[#f0ecff] bg-[#faf9ff] p-3.5 text-xs leading-relaxed text-[#6d6a85]">
           <div className="mb-2 flex items-center gap-2.5">
-            <Avatar name={name} photo={user.photoURL ?? undefined} size={30} />
+            <Avatar name={name} photo={photo} size={30} />
             <div className="min-w-0">
-              <div className="truncate text-xs font-extrabold text-[#4d50a6]">
+              <div className="truncate text-xs font-extrabold text-[#5f57c8]">
                 {name}
               </div>
               <button
                 type="button"
                 onClick={onLogout}
-                className="text-[11px] text-[#8387a0] transition hover:text-[#4d50a6]"
+                className="text-[11px] text-[#9692ad] transition hover:text-[#5f57c8]"
               >
                 로그아웃
               </button>
             </div>
           </div>
-          <strong className="block text-[11px] text-[#4d50a6]">
+          <strong className="block text-[11px] text-[#5f57c8]">
             내 계정에 안전하게 저장 중
           </strong>
-          계획과 기록은 로그인한 계정에 동기화됩니다.
+          {role === 'parent'
+            ? '자녀의 계획과 포인트가 Firebase에 동기화됩니다.'
+            : '계획과 기록은 로그인한 계정에 동기화됩니다.'}
         </div>
       </aside>
 
       <div className="min-w-0 flex-1 pb-24 lg:pb-0">
-        <header className="flex items-center justify-between gap-3 border-b border-[#e7e9f2] bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
-          <div className="flex items-center gap-2 text-sm font-extrabold text-[#202538]">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#6f7df0] to-[#4958cf] text-white">
+        <header className="flex items-center justify-between gap-3 border-b border-[#ece8f7] bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
+          <div className="flex items-center gap-2 text-sm font-extrabold text-[#3d3a55]">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#b9b4ff] to-[#8d86f5] text-white">
               ⌁
             </span>
             하루결
           </div>
           <div className="flex items-center gap-2">
-            <Avatar name={name} photo={user.photoURL ?? undefined} size={26} />
+            <span className="rounded-full bg-[#f1eeff] px-2 py-0.5 text-[9px] font-extrabold text-[#6a63c9]">
+              {roleLabel}
+            </span>
+            <Avatar name={name} photo={photo} size={26} />
             <button
               type="button"
               onClick={onLogout}
-              className="text-xs font-medium text-[#72778d] transition hover:text-[#5969df]"
+              className="text-xs font-medium text-[#8b88a3] transition hover:text-[#6f68e8]"
             >
               로그아웃
             </button>
@@ -128,16 +158,17 @@ export function AppShell({
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[#e5e7ee] bg-white/95 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(29,34,60,0.05)] backdrop-blur-xl lg:hidden">
-        {MOBILE_NAV.map((item) => (
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[#ece8f7] bg-white/95 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(61,58,85,0.05)] backdrop-blur-xl lg:hidden">
+        {mobileNav.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => onNavigate(item.id)}
+            aria-current={view === item.id ? 'page' : undefined}
             className={`grid place-items-center gap-0.5 rounded-lg py-1.5 text-[10px] font-bold transition ${
               view === item.id
-                ? 'bg-[#eef0ff] text-[#5969df]'
-                : 'text-[#7a8092] hover:text-[#5969df]'
+                ? 'bg-[#f1eeff] text-[#6f68e8]'
+                : 'text-[#8b88a3] hover:text-[#6f68e8]'
             }`}
           >
             <span className="text-base">{item.icon}</span>
