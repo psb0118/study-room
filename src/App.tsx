@@ -70,6 +70,11 @@ function Workspace({
     return <FullScreenLoading label="프로필을 준비하는 중…" />
   }
 
+  // 로그아웃/다른 계정 로그인 직후 이전 프로필이 잠시 남아 있는 것을 막는다.
+  if (profile.uid !== user.uid) {
+    return <FullScreenLoading label="프로필을 준비하는 중…" />
+  }
+
   if (!profile.role) {
     return (
       <RoleSetup
