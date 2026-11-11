@@ -2,12 +2,18 @@ rules_version = '2';
 
 // Firestore 보안 규칙
 // - 스터디 룸 학습 기록(studyUsers)은 본인만 읽고 쓴다.
+// - 과목/계획/기록은 studyUsers/{uid} 하위 컬렉션에 저장된다.
 // - 그 외(단어게임 랭킹 leaderboards 등)는 서버(firebase-admin, 서비스 계정)만
 //   접근하며 브라우저 클라이언트의 직접 접근은 전부 차단한다. (치팅 방지)
 service cloud.firestore {
   match /databases/{database}/documents {
     match /studyUsers/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // planner: subjects / plans / records
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     match /{document=**} {

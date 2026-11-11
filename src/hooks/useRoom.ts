@@ -12,7 +12,7 @@ import {
 } from 'firebase/database'
 import { db } from '../firebase'
 import { initialTimer, nextPhase, pauseTimer, resetTimer, setDurations, startTimer } from '../lib/pomodoro'
-import { recordFocus } from '../lib/stats'
+import { recordRoomFocus } from '../lib/stats'
 import type { ChatMsg, Member, Stroke, TimerState } from '../types'
 
 interface RoomMeta {
@@ -187,7 +187,7 @@ export function useRoom(code: string, user: User) {
       const ms = Math.min(HEARTBEAT_MS, Date.now() - last)
       last = Date.now()
       if (ms >= 15_000) {
-        void recordFocus(user.uid, user.displayName ?? '익명', ms)
+        void recordRoomFocus(user.uid, ms)
       }
     }
     const id = window.setInterval(flush, HEARTBEAT_MS)
@@ -195,7 +195,7 @@ export function useRoom(code: string, user: User) {
       window.clearInterval(id)
       flush()
     }
-  }, [user.uid, user.displayName])
+  }, [user.uid])
 
   const isHost = meta?.hostUid === user.uid
 

@@ -21,27 +21,32 @@ export function TimerPanel({ timer, members, actions }: TimerPanelProps) {
     const id = window.setInterval(() => setNow(Date.now()), 250)
     return () => window.clearInterval(id)
   }, [])
+
   const remain = remainingMs(timer, now)
   const prog = progress(timer, now)
   const phase = timer.phase
   const active = timer.running || (phase !== 'idle' && remain > 0)
-  const editor = timer.updatedBy ? members.find((m) => m.uid === timer.updatedBy) : null
+  const editor = timer.updatedBy
+    ? members.find((m) => m.uid === timer.updatedBy)
+    : null
 
   const chip =
     phase === 'focus'
-      ? 'bg-rose-500/15 text-rose-300 ring-rose-400/30'
+      ? 'bg-[#fff0f2] text-[#c84f61] ring-[#f3ced3]'
       : phase === 'break'
-        ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
-        : 'bg-white/5 text-slate-300 ring-white/10'
+        ? 'bg-[#e9f8f1] text-[#278b66] ring-[#cbeedc]'
+        : 'bg-[#f0f2f7] text-[#697088] ring-[#e7e9f2]'
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+    <section className="surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${chip}`}>
+          <div
+            className={`rounded-full px-3 py-1 text-xs font-extrabold ring-1 ${chip}`}
+          >
             {PHASE_LABEL[phase]}
           </div>
-          <div className="font-mono text-5xl font-bold tracking-tight tabular-nums text-white sm:text-6xl">
+          <div className="font-mono text-5xl font-extrabold tracking-tight tabular-nums text-[#202538] sm:text-6xl">
             {formatMMSS(remain)}
           </div>
         </div>
@@ -50,35 +55,23 @@ export function TimerPanel({ timer, members, actions }: TimerPanelProps) {
           <button
             type="button"
             onClick={timer.running ? actions.pause : actions.start}
-            className={`rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition ${
-              timer.running
-                ? 'bg-amber-500 hover:bg-amber-400'
-                : 'bg-indigo-500 hover:bg-indigo-400'
-            }`}
+            className={timer.running ? 'btn btn-warn' : 'btn btn-primary'}
           >
             {timer.running ? '일시정지' : '시작'}
           </button>
-          <button
-            type="button"
-            onClick={actions.advance}
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/10"
-          >
+          <button type="button" onClick={actions.advance} className="btn">
             건너뛰기
           </button>
-          <button
-            type="button"
-            onClick={actions.reset}
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/10"
-          >
+          <button type="button" onClick={actions.reset} className="btn">
             초기화
           </button>
         </div>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#edf0f6]">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            phase === 'break' ? 'bg-emerald-400' : 'bg-indigo-400'
+            phase === 'break' ? 'bg-[#3aa981]' : 'bg-[#6675ea]'
           }`}
           style={{ width: `${prog * 100}%` }}
         />
@@ -102,7 +95,9 @@ export function TimerPanel({ timer, members, actions }: TimerPanelProps) {
           suffix="분"
         />
         {editor && active && (
-          <span className="ml-auto text-xs text-slate-500">{editor.name}님이 마지막으로 조작</span>
+          <span className="ml-auto text-xs text-[#9498a7]">
+            {editor.name}님이 마지막으로 조작
+          </span>
         )}
       </div>
     </section>
@@ -126,23 +121,23 @@ function Stepper({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-400">{label}</span>
+      <span className="text-xs font-semibold text-[#9498a7]">{label}</span>
       <button
         type="button"
         onClick={() => onChange(Math.max(min, value - 1))}
-        className="h-7 w-7 rounded-md border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
+        className="h-7 w-7 rounded-md border border-[#e7e9f2] bg-white text-[#52586e] transition hover:border-[#c9cee1] hover:bg-[#fafbfe]"
         aria-label={`${label} 줄이기`}
       >
         −
       </button>
-      <span className="w-14 text-center text-sm font-semibold tabular-nums text-white">
+      <span className="w-14 text-center text-sm font-extrabold tabular-nums text-[#202538]">
         {value}
         {suffix}
       </span>
       <button
         type="button"
         onClick={() => onChange(Math.min(max, value + 1))}
-        className="h-7 w-7 rounded-md border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
+        className="h-7 w-7 rounded-md border border-[#e7e9f2] bg-white text-[#52586e] transition hover:border-[#c9cee1] hover:bg-[#fafbfe]"
         aria-label={`${label} 늘리기`}
       >
         +

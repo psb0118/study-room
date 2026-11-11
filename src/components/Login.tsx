@@ -5,21 +5,23 @@ interface LoginProps {
 
 export function Login({ onSignIn, error }: LoginProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900/70 p-8 shadow-2xl">
+    <div className="flex min-h-screen items-center justify-center bg-[#f6f7fb] px-4">
+      <div className="surface w-full max-w-sm p-8">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 text-2xl ring-1 ring-indigo-400/40">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef0ff] text-2xl text-[#5969df] ring-1 ring-[#dfe3fb]">
             ⏱
           </div>
-          <h1 className="text-2xl font-bold text-white">스터디 룸</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            실시간 포모도로 · 화이트보드 · 채팅으로 함께 공부해요
+          <h1 className="text-2xl font-extrabold tracking-[-0.045em] text-[#202538]">
+            하루결
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-[#72778d]">
+            실시간 스터디 룸과 공부 플래너로 함께 공부해요
           </p>
         </div>
         <button
           type="button"
           onClick={onSignIn}
-          className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 font-semibold text-slate-900 transition hover:bg-slate-100"
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#dfe2ec] bg-white px-4 py-3 font-bold text-[#202538] transition hover:border-[#c9cee1] hover:bg-[#fafbfe]"
         >
           <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
             <path
@@ -42,12 +44,12 @@ export function Login({ onSignIn, error }: LoginProps) {
           Google로 시작하기
         </button>
         {error && (
-          <p className="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-center text-sm text-red-300">
+          <p className="mt-4 rounded-lg bg-[#fff0f2] px-3 py-2 text-center text-sm text-[#c84f61]">
             {error}
           </p>
         )}
-        <p className="mt-5 text-center text-xs text-slate-500">
-          로그인하면 학습 기록과 스트릭이 계정에 저장됩니다.
+        <p className="mt-5 text-center text-xs leading-relaxed text-[#9498a7]">
+          로그인하면 학습 기록과 플래너가 계정에 저장됩니다.
         </p>
       </div>
     </div>

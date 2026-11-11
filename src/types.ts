@@ -55,3 +55,66 @@ export interface UserStats {
   days: Record<string, number>
   lastMinuteKey: number
 }
+
+/* ── 공부 플래너 ───────────────────────────────────────────── */
+
+export interface Subject {
+  id: string
+  name: string
+  color: string
+  archived: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+export type PlanStatus = 'planned' | 'in_progress' | 'completed'
+
+export type Priority = 'low' | 'medium' | 'high'
+
+export interface StudyPlan {
+  id: string
+  subjectId: string
+  title: string
+  description: string
+  /** YYYY-MM-DD (로컬 날짜) */
+  plannedDate: string
+  /** HH:mm, 미정이면 빈 문자열 */
+  startTime: string
+  endTime: string
+  targetMinutes: number
+  priority: Priority
+  status: PlanStatus
+  memo: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface PlanInput {
+  subjectId: string
+  title: string
+  description: string
+  plannedDate: string
+  startTime: string
+  endTime: string
+  targetMinutes: number
+  priority: Priority
+  status: PlanStatus
+  memo: string
+}
+
+export interface StudyRecord {
+  id: string
+  /** 실제 과목 id 또는 스터디 룸 기록을 뜻하는 특수 id */
+  subjectId: string
+  planId: string
+  /** YYYY-MM-DD (로컬 날짜) — 통계 집계 기준 */
+  dateKey: string
+  source: 'room' | 'manual'
+  startedAt: number
+  endedAt: number
+  durationMs: number
+  memo: string
+  createdAt: number
+  /** 스터디 룸 기록의 분 단위 중복 집계 방지용 */
+  lastMinuteKey?: number
+}
