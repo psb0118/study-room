@@ -85,7 +85,7 @@ firebase deploy --only database,firestore:rules
 규칙 파일: `firebase/database.rules.json`, `firebase/firestore.rules`
 
 - **Realtime DB**: 로그인한 사용자만 방 읽기/쓰기, 채팅 500자·획 점 수 제한
-- **Firestore**: 학생은 본인 데이터에 접근하고, 연결된 부모는 자녀의 프로필·계획·기록을 읽고 계획을 추가·삭제·완료 취소할 수 있습니다. 가족 코드와 공개 포인트 순위 규칙도 포함됩니다.
+- **Firestore**: 학생은 본인 데이터에 접근하고, 연결된 부모는 자녀의 프로필·계획·기록을 읽고 계획을 추가·삭제·완료 취소할 수 있습니다. 가족 코드와 공개 포인트 순위 규칙도 포함되며, 학생/연결된 부모는 순위표 항목을 삭제할 수 있습니다.
 
 > 플래너 데이터는 `studyUsers/{uid}/subjects|plans|records` 하위 컬렉션에 저장됩니다. 부모 연결과 포인트 순위를 사용하려면 이 저장소의 최신 `firebase/firestore.rules`를 반드시 배포해야 합니다. 기존 규칙만 배포된 상태에서는 `Missing or insufficient permissions`가 발생할 수 있습니다.
 

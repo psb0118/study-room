@@ -79,14 +79,16 @@ service cloud.firestore {
     }
 
     // 공개 순위표에는 이름/사진/포인트/레벨만 저장한다.
+    // 학생과 연결된 부모는 계정 정리 시 자신(자녀)의 항목을 삭제할 수 있다.
     match /leaderboard/{uid} {
       allow read: if signedIn();
-      allow write: if (isSelf(uid) || isParentOf(uid))
+      allow create, update: if (isSelf(uid) || isParentOf(uid))
         && request.resource.data.uid == uid
         && request.resource.data.points is number
         && request.resource.data.points >= 0
         && request.resource.data.level is number
         && request.resource.data.level >= 1;
+      allow delete: if isSelf(uid) || isParentOf(uid);
     }
 
     match /{document=**} {
