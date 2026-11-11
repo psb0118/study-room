@@ -1,0 +1,47 @@
+name: Deploy Firestore Rules
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firebase/firestore.rules'
+      - 'firebase.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID || 'study-room-d0c89' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check FIREBASE_TOKEN secret
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "::error::FIREBASE_TOKEN secret is not set. Run 'firebase login:ci' locally and add the token to Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Deploy Firestore rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          npx --yes firebase-tools@15 deploy \
+            --only firestore:rules \
+            --project "$FIREBASE_PROJECT_ID" \
+            --non-interactive

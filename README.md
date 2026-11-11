@@ -76,6 +76,26 @@ firebase deploy --only database,firestore:rules
 
 > 플래너 데이터는 `studyUsers/{uid}/subjects|plans|records` 하위 컬렉션에 저장됩니다. 기존 규칙을 사용 중이라면 위 명령으로 Firestore 규칙을 반드시 다시 배포해야 플래너가 동작합니다.
 
+#### Firestore 규칙 자동 배포 (선택)
+
+`firebase/firestore.rules` 또는 `firebase.json`이 `main`에 푸시되면 GitHub Actions가 Firestore 규칙을 자동 배포합니다.
+
+1. 로컬에서 CI 토큰을 발급합니다.
+
+   ```bash
+   npx firebase-tools login:ci
+   ```
+
+2. GitHub 저장소 → **Settings → Secrets and variables → Actions → New repository secret**에서 `FIREBASE_TOKEN` 이름으로 토큰을 저장합니다.
+
+3. **최초 1회**는 Actions → **Deploy Firestore Rules** → **Run workflow**를 실행해 현재 규칙을 배포합니다. 워크플로우 파일을 추가한 커밋만으로는 실행되지 않습니다.
+
+4. 이후 규칙 파일을 수정해 `main`에 푸시하면 자동으로 배포됩니다.
+
+다른 Firebase 프로젝트를 사용한다면 저장소 변수 `FIREBASE_PROJECT_ID`를 설정하세요. 기본값은 `study-room-d0c89`입니다.
+
+> `FIREBASE_TOKEN`은 Firebase 계정 권한을 가진 비밀값입니다. 저장소 Secret으로만 보관하고, 노출이 의심되면 `firebase login:ci`로 재발급해 교체하세요.
+
 ### 4) 호스트 도메인 확인
 
 Auth 콘솔 → **Settings → Authorized domains** 에 배포 도메인 추가 (로컬호스트는 기본 포함).
