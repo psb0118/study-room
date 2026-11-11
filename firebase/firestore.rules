@@ -5,6 +5,7 @@ rules_version = '2';
 // - 부모는 6자리 가족 코드로 연결된 자녀의 프로필/계획을 읽고,
 //   계획을 추가·삭제·완료 취소할 수 있다.
 // - 포인트 순위(leaderboard)는 로그인한 사용자에게 공개되는 요약 정보만 담는다.
+// - 주간 리그(weeklyLeaderboards)는 주차별 하위 컬렉션으로 분리해 공개한다.
 // - 그 외 경로는 모두 차단한다.
 service cloud.firestore {
   match /databases/{database}/documents {
