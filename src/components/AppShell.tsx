@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Role } from '../types'
 import { Avatar } from './Avatar'
+import { OfflineNotice } from './OfflineNotice'
 
 export type View =
   | 'home'
@@ -154,6 +155,7 @@ export function AppShell({
         </header>
 
         <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
+          <OfflineNotice />
           {children}
         </main>
       </div>

@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react'
+import type { User } from 'firebase/auth'
+import type { PlannerApi } from '../hooks/usePlanner'
 import type { ProfileApi } from '../hooks/useProfile'
 import type { UserProfile } from '../types'
+import { DataSettings } from './DataSettings'
 import {
   PageHeader,
   dangerButton,
@@ -11,11 +14,20 @@ import {
 } from './ui'
 
 interface FamilyProps {
+  user: User
   profile: UserProfile
   profileApi: ProfileApi
+  exportProfile?: UserProfile | null
+  planner?: PlannerApi
 }
 
-export function Family({ profile, profileApi }: FamilyProps) {
+export function Family({
+  user,
+  profile,
+  profileApi,
+  exportProfile,
+  planner,
+}: FamilyProps) {
   const [code, setCode] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -136,6 +148,13 @@ export function Family({ profile, profileApi }: FamilyProps) {
             </p>
           </section>
         </div>
+
+        <DataSettings
+          user={user}
+          profile={profile}
+          exportProfile={exportProfile ?? profile}
+          planner={planner}
+        />
 
         <ActionError message={profileApi.actionError} />
       </div>
@@ -266,6 +285,13 @@ export function Family({ profile, profileApi }: FamilyProps) {
           </p>
         </section>
       </div>
+
+      <DataSettings
+        user={user}
+        profile={profile}
+        exportProfile={exportProfile}
+        planner={planner}
+      />
     </div>
   )
 }

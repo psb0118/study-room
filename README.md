@@ -34,6 +34,12 @@
 - **부모 다자녀·주간 리포트** — 여러 자녀를 각각 연결하고 상단 선택기로 전환합니다. 자녀별 이번 주 완료율, 공부 시간, 연속 학습, 놓친 계획을 한눈에 확인합니다.
 - **역할 구분** — 학생/부모 계정을 따로 만들고, 연결된 자녀 데이터만 공유
 
+### 4) 데이터 관리와 오프라인
+
+- **데이터 내보내기** — 현재 계정(부모는 선택한 자녀)의 프로필·과목·계획·기록을 JSON 파일로 저장합니다. 네트워크를 다시 호출하지 않아 오프라인에서도 내보낼 수 있습니다.
+- **계정 삭제** — 비밀번호 또는 Google 재인증과 확인 문구를 거친 뒤 프로필, 플래너 데이터, 가족 연결 코드, 순위표·주간 리그 항목을 정리하고 Auth 계정을 삭제합니다. 부모 계정 삭제 시 자녀의 학습 데이터는 유지됩니다.
+- **오프라인 지원** — Firestore 영구 캐시로 마지막 데이터를 읽고 변경을 대기열에 저장하며, 서비스 워커가 앱 셸과 해시된 JS/CSS를 캐시합니다. 오프라인 중에는 상단에 상태 안내가 표시되고, 연결이 돌아오면 저장 내용이 자동 동기화됩니다.
+
 ## 실행 방법
 
 ```bash
@@ -130,21 +136,28 @@ src/
     usePlanner.ts        과목·계획·기록 실시간 구독과 CRUD
     usePointsSync.ts     완료 계획에서 포인트를 계산해 순위표에 동기화
     useLeaderboard.ts    전체/주간 상위 20명과 내 순위 구독
+    useOnlineStatus.ts   브라우저 온라인/오프라인 상태
   lib/
     pomodoro.ts          타이머 순수 로직 (상태 전이/잔여시간/진행률)
     streak.ts            스트릭/날짜 계산 순수 로직
     planner.ts           플래너 날짜/필터/통계/검증 순수 로직
     points.ts            완료 포인트/레벨/칭호 계산
     profile.ts           프로필 기본값, 가족 코드, 기본 과목
+    exportData.ts        JSON 내보내기 번들·파일명
+    account.ts           재인증 후 계정·가족·학습 데이터 삭제
+    weeklyKeys.ts        계정 삭제 시 정리할 주간 리그 키
     errors.ts            Firebase 오류 한국어 메시지
     stats.ts             프로필 부트스트랩, 스터디 룸 집중 기록
   components/
     AppShell             역할별 사이드바·모바일 하단 내비게이션
     Login / RoleSetup / Dashboard / Lobby / Room
     Family / Leaderboard / ParentHome / PointsCard
+    DataSettings / OfflineNotice
     TimerPanel / Whiteboard / Chat / Members
     FocusTimer / Plans / Subjects / Records / Stats / Schedule
     ui                   공통 카드·모달·입력·탭·차트
+public/
+  sw.js                 오프라인 앱 셸 서비스 워커
 firebase/
   database.rules.json    Realtime Database 보안 규칙
   firestore.rules        Firestore 보안 규칙
@@ -157,6 +170,7 @@ firebase/
   - 타이머는 `endsAt`(epoch ms) 기준으로 각 클라이언트가 계산하고, 만료 시 방장(부재 시 최초 참가자)이 다음 단계 기록
   - 참가자가 모두 나가면 15초 후 방 자동 삭제
 - **Firestore**: `studyUsers/{uid}` 프로필 + 하위 컬렉션
+  - Firestore 영구 캐시를 사용해 온라인에서 본 데이터와 대기 중인 변경을 기기에 보관합니다. 서비스 워커는 앱 셸과 해시된 정적 자산을 캐시합니다.
   - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`
   - `subjects/{subjectId}` — 이름, 색상, 보관 여부
   - `plans/{planId}` — 과목, 제목, 날짜, 시간, 목표 분, 우선순위, 상태, `completedAt`(완료 시각), 메모
@@ -179,5 +193,7 @@ firebase/
 | 부모 연결 코드를 찾을 수 없어요 | 자녀가 코드를 만들었는지, 최신 Firestore 규칙이 배포됐는지 확인 |
 | 포인트 순위가 비어 있어요 | 계획을 완료한 뒤 순위표 동기화를 기다리고, 로그인/규칙 상태 확인 |
 | 주간 순위가 비어 있어요 | 최신 Firestore 규칙을 배포한 뒤, 이번 주 계획을 완료하고 동기화를 기다려 주세요 |
+| 오프라인에서 앱이 열리지 않아요 | 프로덕션 빌드로 한 번 이상 접속해 서비스 워커를 등록하고, 브라우저 사이트 데이터를 지우지 마세요 |
+| 계정 삭제가 `requires-recent-login`으로 실패해요 | 로그아웃 후 다시 로그인하거나, 이메일 계정은 비밀번호를 정확히 입력하고 Google 계정은 재인증 창을 완료해 주세요 |
 | 화이트보드 저장 거부 | Firebase 콘솔 RTDB 규칙에 최신 `database.rules.json` 게시 |
 | 방에 들어가면 곧 "방이 종료" | 규칙/네트워크로 참가 정보 쓰기 실패 확인 |

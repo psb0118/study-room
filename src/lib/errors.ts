@@ -35,6 +35,9 @@ export function authMessage(error: unknown): string {
   if (code.includes('weak-password')) {
     return '비밀번호는 6자 이상으로 만들어 주세요.'
   }
+  if (code.includes('requires-recent-login')) {
+    return '보안을 위해 다시 로그인한 뒤 시도해 주세요.'
+  }
   if (code.includes('too-many-requests')) {
     return '시도가 너무 많아요. 잠시 후 다시 시도해 주세요.'
   }

@@ -90,6 +90,7 @@ function Workspace({
   if (profile.role === 'parent') {
     return (
       <ParentWorkspace
+        user={user}
         profile={profile}
         profileApi={profileApi}
         onLogout={onLogout}
@@ -144,7 +145,15 @@ function StudentWorkspace({
       case 'leaderboard':
         return <Leaderboard highlightUid={user.uid} viewerRole="student" />
       case 'family':
-        return <Family profile={profile} profileApi={profileApi} />
+        return (
+          <Family
+            user={user}
+            profile={profile}
+            profileApi={profileApi}
+            exportProfile={profile}
+            planner={planner}
+          />
+        )
       case 'home':
       default:
         return (
@@ -174,10 +183,12 @@ function StudentWorkspace({
 }
 
 function ParentWorkspace({
+  user,
   profile,
   profileApi,
   onLogout,
 }: {
+  user: User
   profile: UserProfile
   profileApi: ProfileApi
   onLogout: () => void
@@ -199,7 +210,7 @@ function ParentWorkspace({
   if (!activeChildUid) {
     const page =
       view === 'family' ? (
-        <Family profile={profile} profileApi={profileApi} />
+        <Family user={user} profile={profile} profileApi={profileApi} />
       ) : (
         <ParentWelcome parentName={profile.name} onNavigate={setView} />
       )
@@ -220,6 +231,7 @@ function ParentWorkspace({
   return (
     <LinkedParentWorkspace
       key={activeChildUid}
+      user={user}
       profile={profile}
       profileApi={profileApi}
       childUids={childUids}
@@ -233,6 +245,7 @@ function ParentWorkspace({
 }
 
 function LinkedParentWorkspace({
+  user,
   profile,
   profileApi,
   childUids,
@@ -242,6 +255,7 @@ function LinkedParentWorkspace({
   onSelectChild,
   onLogout,
 }: {
+  user: User
   profile: UserProfile
   profileApi: ProfileApi
   childUids: string[]
@@ -273,7 +287,15 @@ function LinkedParentWorkspace({
           <Leaderboard highlightUid={activeChildUid} viewerRole="parent" />
         )
       case 'family':
-        return <Family profile={profile} profileApi={profileApi} />
+        return (
+          <Family
+            user={user}
+            profile={profile}
+            profileApi={profileApi}
+            exportProfile={child.profile}
+            planner={planner}
+          />
+        )
       case 'home':
       default:
         return (

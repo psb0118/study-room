@@ -13,7 +13,12 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
-import { getFirestore } from 'firebase/firestore'
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore'
 
 const FALLBACK_DATABASE_URL = 'https://study-room-d0c89-default-rtdb.asia-southeast1.firebasedatabase.app'
 
@@ -47,5 +52,23 @@ export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseCon
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getDatabase(app)
-export const fs = getFirestore(app)
+
+/** 오프라인에서도 마지막으로 불러온 플래너 데이터를 읽고, 변경을 대기열에 저장한다. */
+function createFirestore() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    })
+  } catch (e) {
+    console.warn(
+      '[firebase] 오프라인 캐시를 초기화하지 못해 기본 Firestore를 사용합니다.',
+      e,
+    )
+    return getFirestore(app)
+  }
+}
+
+export const fs = createFirestore()
 export const googleProvider = new GoogleAuthProvider()
