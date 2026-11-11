@@ -34,6 +34,7 @@ export function DataSettings({
   const targetIsChild = target.uid !== profile.uid
   const targetPlanner =
     profile.role === 'student' || targetIsChild ? planner : undefined
+  const exportLoading = targetPlanner?.loading ?? false
   const targetName = target.nickname || target.name
   const [exportNotice, setExportNotice] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -51,6 +52,7 @@ export function DataSettings({
   const canDelete = hasPassword || hasGoogle
 
   const exportData = () => {
+    if (exportLoading) return
     setExportNotice(null)
     setExportError(null)
     try {
@@ -169,9 +171,10 @@ export function DataSettings({
             <button
               type="button"
               onClick={exportData}
+              disabled={exportLoading}
               className={`${primaryButton} mt-4 w-full`}
             >
-              JSON으로 내보내기
+              {exportLoading ? '데이터 불러오는 중…' : 'JSON으로 내보내기'}
             </button>
             {exportNotice && (
               <p className="mt-2 text-[11px] leading-relaxed text-[#3f9f7f]">
