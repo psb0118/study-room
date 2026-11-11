@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { User } from 'firebase/auth'
 import {
+  arrayRemove,
+  arrayUnion,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -26,8 +29,9 @@ export interface ProfileApi {
   actionError: string | null
   busy: boolean
   chooseRole: (role: Role) => Promise<boolean>
+  updateNickname: (nickname: string) => Promise<boolean>
   linkChild: (code: string) => Promise<boolean>
-  unlinkChild: () => Promise<boolean>
+  unlinkChild: (childUid?: string) => Promise<boolean>
   regenerateFamilyCode: () => Promise<boolean>
   clearError: () => void
 }
@@ -136,6 +140,17 @@ export function useProfile(user: User): ProfileApi {
     })
   }
 
+  const updateNickname = async (rawNickname: string): Promise<boolean> => {
+    const nickname = rawNickname.trim()
+    if (nickname.length < 2 || nickname.length > 20) {
+      setActionError('닉네임은 2~20자로 입력해 주세요.')
+      return false
+    }
+    return run(async () => {
+      await updateDoc(userRef, { nickname, updatedAt: Date.now() })
+    })
+  }
+
   const linkChild = async (rawCode: string): Promise<boolean> => {
     if (!profile) {
       setActionError('프로필을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.')
@@ -143,10 +158,6 @@ export function useProfile(user: User): ProfileApi {
     }
     if (profile.role !== 'parent') {
       setActionError('부모 계정에서만 자녀를 연결할 수 있어요.')
-      return false
-    }
-    if (profile.childUid) {
-      setActionError('이미 자녀가 연결되어 있어요. 먼저 연결을 해제해 주세요.')
       return false
     }
     const code = rawCode.trim().toUpperCase()
@@ -164,6 +175,12 @@ export function useProfile(user: User): ProfileApi {
       if (studentUid === user.uid) {
         throw new Error('본인 계정은 자녀로 연결할 수 없어요.')
       }
+      if (
+        profile.childUids.includes(studentUid) ||
+        profile.childUid === studentUid
+      ) {
+        throw new Error('이미 연결된 자녀예요.')
+      }
       await setDoc(doc(fs, 'families', studentUid, 'parents', user.uid), {
         uid: user.uid,
         name: profile.name,
@@ -171,20 +188,35 @@ export function useProfile(user: User): ProfileApi {
         code,
         linkedAt: Date.now(),
       })
+      const childSnap = await getDoc(
+        doc(fs, STUDY_USERS, studentUid),
+      ).catch(() => null)
+      const childData: Record<string, unknown> = childSnap?.exists()
+        ? (childSnap.data() as Record<string, unknown>)
+        : {}
+      const childName = String(childData.name ?? childData.nickname ?? '자녀')
       await updateDoc(userRef, {
         childUid: studentUid,
+        childUids: arrayUnion(studentUid),
+        [`childNames.${studentUid}`]: childName,
         updatedAt: Date.now(),
       })
     })
   }
 
-  const unlinkChild = async (): Promise<boolean> => {
-    if (!profile?.childUid) return false
+  const unlinkChild = async (childUid = ''): Promise<boolean> => {
+    if (!profile) return false
+    const target = childUid || profile.childUid
+    if (!target) return false
     return run(async () => {
-      await deleteDoc(
-        doc(fs, 'families', profile.childUid, 'parents', user.uid),
-      )
-      await updateDoc(userRef, { childUid: '', updatedAt: Date.now() })
+      await deleteDoc(doc(fs, 'families', target, 'parents', user.uid))
+      const remaining = profile.childUids.filter((uid) => uid !== target)
+      await updateDoc(userRef, {
+        childUid: remaining[0] ?? '',
+        childUids: arrayRemove(target),
+        [`childNames.${target}`]: deleteField(),
+        updatedAt: Date.now(),
+      })
     })
   }
 
@@ -214,6 +246,7 @@ export function useProfile(user: User): ProfileApi {
     actionError,
     busy,
     chooseRole,
+    updateNickname,
     linkChild,
     unlinkChild,
     regenerateFamilyCode,
@@ -223,8 +256,9 @@ export function useProfile(user: User): ProfileApi {
 
 export function useChildProfile(uid: string) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loadedUid, setLoadedUid] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const loading = loadedUid !== uid
 
   useEffect(() => {
     if (!uid) return
@@ -234,11 +268,11 @@ export function useChildProfile(uid: string) {
         setProfile(
           snap.exists() ? normalizeProfile(snap.id, snap.data()) : null,
         )
-        setLoading(false)
+        setLoadedUid(uid)
       },
       (e) => {
         setError(firestoreMessage(e))
-        setLoading(false)
+        setLoadedUid(uid)
       },
     )
     return unsub

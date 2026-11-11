@@ -10,7 +10,9 @@ import {
   todayKey,
 } from '../lib/planner'
 import { completedPoints, levelInfo, pointsForPlan } from '../lib/points'
+import type { StudyPlan } from '../types'
 import type { View } from './AppShell'
+import { FocusTimer } from './FocusTimer'
 import { Avatar } from './Avatar'
 import { PointsCard } from './PointsCard'
 import {
@@ -46,6 +48,7 @@ export function Dashboard({
       weekday: 'long',
     }).format(new Date()),
   )
+  const [focusPlan, setFocusPlan] = useState<StudyPlan | null>(null)
   const today = todayKey()
   const todayPlans = sortPlans(plans.filter((p) => p.plannedDate === today))
   const completed = todayPlans.filter((p) => p.status === 'completed').length
@@ -194,6 +197,13 @@ export function Dashboard({
                       >
                         {done ? `+${reward}P` : `${reward}P`}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setFocusPlan(plan)}
+                        className="shrink-0 rounded-md border border-[#e6e1ff] bg-[#f7f4ff] px-2 py-1 text-[11px] font-extrabold text-[#6a63c9] transition hover:border-[#b9b4ff] hover:bg-[#f1eeff]"
+                      >
+                        집중
+                      </button>
                       <StatusBadge status={plan.status} />
                     </li>
                   )
@@ -313,6 +323,14 @@ export function Dashboard({
           </section>
         </div>
       </div>
+      {focusPlan && (
+        <FocusTimer
+          key={focusPlan.id}
+          plan={focusPlan}
+          planner={planner}
+          onClose={() => setFocusPlan(null)}
+        />
+      )}
     </div>
   )
 }

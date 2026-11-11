@@ -185,6 +185,80 @@ export function formatDuration(ms: number): string {
   return `${minutes}분`
 }
 
+/** 시작일부터 종료일까지 선택한 요일에 해당하는 날짜를 최대 31개 만든다. */
+export function repeatDates(
+  start: string,
+  until: string,
+  weekdays: number[],
+): string[] {
+  if (!isDateKey(start) || !isDateKey(until) || until < start) return []
+  const selected = new Set(
+    weekdays.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6),
+  )
+  if (selected.size === 0) return []
+  const out: string[] = []
+  let cursor = start
+  for (let guard = 0; cursor <= until && out.length < 31 && guard < 366; guard += 1) {
+    const day = new Date(`${cursor}T12:00:00`).getDay()
+    if (selected.has(day)) out.push(cursor)
+    cursor = addDays(cursor, 1)
+  }
+  return out
+}
+
+export interface WeeklyReport {
+  start: string
+  end: string
+  totalPlans: number
+  completedPlans: number
+  completionRate: number
+  targetMinutes: number
+  studyMs: number
+  streak: number
+  missed: number
+}
+
+/** 부모 화면의 이번 주(월~일) 요약. */
+export function weeklyReport(
+  plans: StudyPlan[],
+  records: StudyRecord[],
+  today = todayKey(),
+): WeeklyReport {
+  const start = startOfWeek(today)
+  const end = addDays(start, 6)
+  const weekPlans = plans.filter(
+    (plan) => plan.plannedDate >= start && plan.plannedDate <= end,
+  )
+  // 완료율은 아직 오지 않은 일정을 빼고, 오늘까지 마감된 계획만 센다.
+  const duePlans = weekPlans.filter((plan) => plan.plannedDate <= today)
+  const completedPlans = duePlans.filter(
+    (plan) => plan.status === 'completed',
+  ).length
+  const targetMinutes = duePlans.reduce(
+    (sum, plan) => sum + Math.max(0, plan.targetMinutes),
+    0,
+  )
+  const studyMs = recordsInPeriod(records, 'week', today).reduce(
+    (sum, record) => sum + Math.max(0, record.durationMs),
+    0,
+  )
+  return {
+    start,
+    end,
+    totalPlans: duePlans.length,
+    completedPlans,
+    completionRate: duePlans.length
+      ? Math.round((completedPlans / duePlans.length) * 100)
+      : 0,
+    targetMinutes,
+    studyMs,
+    streak: calcStreak(dailyTotals(records), today).streak,
+    missed: duePlans.filter(
+      (plan) => plan.plannedDate < today && plan.status !== 'completed',
+    ).length,
+  }
+}
+
 export function recentDays(
   count: number,
   totals: Record<string, number>,
@@ -298,6 +372,7 @@ export function emptyPlanInput(
     targetMinutes: 60,
     priority: 'medium',
     status: 'planned',
+    completedAt: 0,
     memo: '',
   }
 }

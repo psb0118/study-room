@@ -1,4 +1,8 @@
-import { useLeaderboard } from '../hooks/useLeaderboard'
+import { useState } from 'react'
+import {
+  useLeaderboard,
+  type LeaderboardPeriod,
+} from '../hooks/useLeaderboard'
 import { levelInfo } from '../lib/points'
 import type { LeaderboardEntry, Role } from '../types'
 import { Avatar } from './Avatar'
@@ -22,7 +26,12 @@ export function Leaderboard({
   highlightUid: string
   viewerRole: Role
 }) {
-  const { entries, mine, loading, error } = useLeaderboard(highlightUid)
+  const [period, setPeriod] = useState<LeaderboardPeriod>('all')
+  const { entries, mine, loading, error } = useLeaderboard(
+    highlightUid,
+    period,
+  )
+  const isWeek = period === 'week'
   const mineRank = entries.findIndex((entry) => entry.uid === highlightUid)
   const podium = entries.slice(0, 3)
   const rest = entries.slice(3)
@@ -31,23 +40,67 @@ export function Leaderboard({
     <div>
       <PageHeader
         eyebrow="POINT LEAGUE"
-        title={viewerRole === 'parent' ? '자녀의 포인트 순위' : '포인트 순위'}
-        description={
+        title={
           viewerRole === 'parent'
-            ? '자녀가 계획을 완료하며 모은 포인트와 전체 순위를 확인해요.'
-            : '계획을 완료할 때마다 포인트가 쌓여요. 친구들과 즐겁게 경쟁해 보세요.'
+            ? isWeek
+              ? '자녀의 이번 주 순위'
+              : '자녀의 전체 순위'
+            : isWeek
+              ? '이번 주 포인트 순위'
+              : '전체 포인트 순위'
+        }
+        description={
+          isWeek
+            ? '월요일부터 지금까지 완료한 계획으로 겨루는 주간 리그예요.'
+            : '지금까지 모은 포인트로 겨루는 전체 순위예요.'
         }
       />
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-1.5 rounded-xl bg-[#f7f4ff] p-1">
+          {(
+            [
+              ['week', '이번 주'],
+              ['all', '전체'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setPeriod(value)}
+              className={`rounded-lg px-4 py-2 text-xs font-extrabold transition ${
+                period === value
+                  ? 'bg-white text-[#5f57c8] shadow-sm'
+                  : 'text-[#8b88a3] hover:text-[#6f68e8]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="text-[11px] text-[#a8a5bb]">
+          주간 리그는 매주 월요일에 새로 시작해요.
+        </span>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <PointsCard
             points={mine?.points ?? 0}
-            label={viewerRole === 'parent' ? '자녀 포인트' : '내 포인트'}
+            label={
+              viewerRole === 'parent'
+                ? isWeek
+                  ? '자녀의 이번 주 포인트'
+                  : '자녀 포인트'
+                : isWeek
+                  ? '이번 주 내 포인트'
+                  : '내 포인트'
+            }
           />
           {mine && mineRank < 0 && (
             <p className="mt-2 px-1 text-right text-[11px] text-[#8b88a3]">
-              현재 상위 20위 밖이에요. 계획을 완료해 순위를 올려보세요!
+              {isWeek ? '이번 주' : '전체'} 상위 20위 밖이에요. 계획을 완료해
+              순위를 올려보세요!
             </p>
           )}
         </div>
@@ -81,8 +134,14 @@ export function Leaderboard({
         <div className={`${panelClass} mt-5`}>
           <EmptyState
             icon="🏆"
-            title="아직 포인트 기록이 없어요"
-            description="첫 번째 계획을 완료하고 순위표의 주인공이 되어보세요."
+            title={
+              isWeek ? '이번 주 기록이 아직 없어요' : '아직 포인트 기록이 없어요'
+            }
+            description={
+              isWeek
+                ? '이번 주 계획을 완료하면 주간 순위에 바로 반영돼요.'
+                : '첫 번째 계획을 완료하고 순위표의 주인공이 되어보세요.'
+            }
           />
         </div>
       ) : (
@@ -136,7 +195,8 @@ export function Leaderboard({
 
           {mine && mineRank >= 0 && (
             <p className="mt-3 text-right text-[11px] text-[#8b88a3]">
-              내 기록은 상위 {mineRank + 1}위에 있어요.
+              {isWeek ? '이번 주' : '전체'} 기록은 상위 {mineRank + 1}위에
+              있어요.
             </p>
           )}
         </>

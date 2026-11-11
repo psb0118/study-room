@@ -22,6 +22,20 @@ export function completedPoints(plans: StudyPlan[]): number {
   )
 }
 
+/** 특정 시각 이후 완료된 계획만 합산한다. 주간 리그에 사용한다. */
+export function completedPointsSince(
+  plans: StudyPlan[],
+  since: number,
+): number {
+  return plans.reduce((sum, plan) => {
+    if (plan.status !== 'completed') return sum
+    const completedAt = plan.completedAt || plan.updatedAt
+    return completedAt >= since
+      ? sum + pointsForPlan(plan.targetMinutes)
+      : sum
+  }, 0)
+}
+
 export interface LevelInfo {
   points: number
   level: number

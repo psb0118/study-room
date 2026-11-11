@@ -84,6 +84,8 @@ export interface StudyPlan {
   targetMinutes: number
   priority: Priority
   status: PlanStatus
+  /** 완료로 바뀐 시각 (주간 리그 집계 기준) */
+  completedAt: number
   memo: string
   createdAt: number
   updatedAt: number
@@ -99,6 +101,8 @@ export interface PlanInput {
   targetMinutes: number
   priority: Priority
   status: PlanStatus
+  /** 기존 계획 수정 시 완료 시각을 보존하기 위한 값 */
+  completedAt?: number
   memo: string
 }
 
@@ -111,13 +115,19 @@ export type ProfileRole = Role | ''
 export interface UserProfile {
   uid: string
   name: string
+  /** 순위표에 표시할 이름. 비어 있으면 name을 쓴다. */
+  nickname: string
   email: string
   photo: string
   role: ProfileRole
   /** 학생이 부모에게 알려주는 6자리 연결 코드 */
   familyCode: string
-  /** 부모 계정이 연결한 자녀의 uid */
+  /** 부모 계정이 마지막으로 선택한 자녀의 uid */
   childUid: string
+  /** 부모 계정에 연결된 모든 자녀 uid */
+  childUids: string[]
+  /** 자녀 uid별 표시 이름 */
+  childNames: Record<string, string>
   createdAt: number
   updatedAt: number
 }

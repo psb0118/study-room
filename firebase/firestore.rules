@@ -91,6 +91,18 @@ service cloud.firestore {
       allow delete: if isSelf(uid) || isParentOf(uid);
     }
 
+    // 주간 리그. 주차별 하위 컬렉션으로 분리해 복합 인덱스 없이 조회한다.
+    match /weeklyLeaderboards/{weekKey}/entries/{uid} {
+      allow read: if signedIn();
+      allow create, update: if (isSelf(uid) || isParentOf(uid))
+        && request.resource.data.uid == uid
+        && request.resource.data.points is number
+        && request.resource.data.points >= 0
+        && request.resource.data.level is number
+        && request.resource.data.level >= 1;
+      allow delete: if isSelf(uid) || isParentOf(uid);
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

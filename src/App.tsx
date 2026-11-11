@@ -183,8 +183,20 @@ function ParentWorkspace({
   onLogout: () => void
 }) {
   const [view, setView] = useState<View>('home')
+  const [selectedChildUid, setSelectedChildUid] = useState('')
+  const childUids =
+    profile.childUids.length > 0
+      ? profile.childUids
+      : profile.childUid
+        ? [profile.childUid]
+        : []
+  const activeChildUid = childUids.includes(selectedChildUid)
+    ? selectedChildUid
+    : childUids.includes(profile.childUid)
+      ? profile.childUid
+      : childUids[0] ?? ''
 
-  if (!profile.childUid) {
+  if (!activeChildUid) {
     const page =
       view === 'family' ? (
         <Family profile={profile} profileApi={profileApi} />
@@ -207,9 +219,14 @@ function ParentWorkspace({
 
   return (
     <LinkedParentWorkspace
+      key={activeChildUid}
       profile={profile}
       profileApi={profileApi}
-      childUid={profile.childUid}
+      childUids={childUids}
+      activeChildUid={activeChildUid}
+      view={view}
+      onNavigate={setView}
+      onSelectChild={setSelectedChildUid}
       onLogout={onLogout}
     />
   )
@@ -218,19 +235,26 @@ function ParentWorkspace({
 function LinkedParentWorkspace({
   profile,
   profileApi,
-  childUid,
+  childUids,
+  activeChildUid,
+  view,
+  onNavigate,
+  onSelectChild,
   onLogout,
 }: {
   profile: UserProfile
   profileApi: ProfileApi
-  childUid: string
+  childUids: string[]
+  activeChildUid: string
+  view: View
+  onNavigate: (view: View) => void
+  onSelectChild: (uid: string) => void
   onLogout: () => void
 }) {
-  const planner = usePlanner(childUid)
-  const child = useChildProfile(childUid)
-  const [view, setView] = useState<View>('home')
+  const planner = usePlanner(activeChildUid)
+  const child = useChildProfile(activeChildUid)
   usePointsSync(
-    childUid,
+    activeChildUid,
     child.profile,
     planner.plans,
     !planner.loading && !child.loading,
@@ -239,21 +263,17 @@ function LinkedParentWorkspace({
   const page = (() => {
     switch (view) {
       case 'plans':
-        return <Plans planner={planner} onNavigate={setView} role="parent" />
+        return <Plans planner={planner} onNavigate={onNavigate} role="parent" />
       case 'schedule':
-        return <Schedule planner={planner} onNavigate={setView} />
+        return <Schedule planner={planner} onNavigate={onNavigate} />
       case 'stats':
         return <Stats planner={planner} />
       case 'leaderboard':
-        return <Leaderboard highlightUid={childUid} viewerRole="parent" />
-      case 'family':
         return (
-          <Family
-            profile={profile}
-            profileApi={profileApi}
-            childName={child.profile?.name}
-          />
+          <Leaderboard highlightUid={activeChildUid} viewerRole="parent" />
         )
+      case 'family':
+        return <Family profile={profile} profileApi={profileApi} />
       case 'home':
       default:
         return (
@@ -262,7 +282,7 @@ function LinkedParentWorkspace({
             child={child.profile}
             planner={planner}
             loading={planner.loading || child.loading}
-            onNavigate={setView}
+            onNavigate={onNavigate}
           />
         )
     }
@@ -274,10 +294,32 @@ function LinkedParentWorkspace({
       photo={profile.photo || undefined}
       role="parent"
       view={view}
-      onNavigate={setView}
+      onNavigate={onNavigate}
       onLogout={onLogout}
     >
       <PlannerError message={planner.error ?? child.error} />
+      {childUids.length > 1 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#e6e1ff] bg-[#faf9ff] px-4 py-3">
+          <label
+            htmlFor="parent-child-select"
+            className="text-xs font-bold text-[#5f5c78]"
+          >
+            관리할 자녀
+          </label>
+          <select
+            id="parent-child-select"
+            value={activeChildUid}
+            onChange={(event) => onSelectChild(event.target.value)}
+            className="rounded-lg border border-[#e4e0f0] bg-white px-3 py-1.5 text-sm font-bold text-[#3d3a55] outline-none focus:border-[#8d86f5]"
+          >
+            {childUids.map((uid, index) => (
+              <option key={uid} value={uid}>
+                {profile.childNames[uid] ?? `자녀 ${index + 1}`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {page}
     </AppShell>
   )

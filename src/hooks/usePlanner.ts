@@ -6,6 +6,7 @@ import {
   onSnapshot,
   setDoc,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore'
 import { fs } from '../firebase'
 import { SUBJECT_COLORS, todayKey } from '../lib/planner'
@@ -49,6 +50,7 @@ function asPlan(id: string, data: Record<string, unknown>): StudyPlan {
     priority: priority === 'low' || priority === 'high' ? priority : 'medium',
     status:
       status === 'in_progress' || status === 'completed' ? status : 'planned',
+    completedAt: Number(data.completedAt) || 0,
     memo: String(data.memo ?? ''),
     createdAt: Number(data.createdAt) || 0,
     updatedAt: Number(data.updatedAt) || 0,
@@ -86,8 +88,9 @@ export function usePlanner(uid: string) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [plans, setPlans] = useState<StudyPlan[]>([])
   const [records, setRecords] = useState<StudyRecord[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loadedUid, setLoadedUid] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const loading = loadedUid !== uid
 
   const subjectsCol = useMemo(
     () => collection(fs, STUDY_USERS, uid, 'subjects'),
@@ -107,7 +110,7 @@ export function usePlanner(uid: string) {
     const seen = new Set<string>()
     const done = (key: string) => {
       seen.add(key)
-      if (active && seen.size === 3) setLoading(false)
+      if (active && seen.size === 3) setLoadedUid(uid)
     }
 
     const unsubs = [
@@ -168,7 +171,7 @@ export function usePlanner(uid: string) {
       active = false
       unsubs.forEach((unsub) => unsub())
     }
-  }, [subjectsCol, plansCol, recordsCol])
+  }, [subjectsCol, plansCol, recordsCol, uid])
 
   const run = async (action: () => Promise<void>): Promise<boolean> => {
     setError(null)
@@ -216,11 +219,16 @@ export function usePlanner(uid: string) {
     const { id, ...rest } = input
     return run(async () => {
       const now = Date.now()
+      const completedAt =
+        rest.status === 'completed'
+          ? Number(rest.completedAt) || now
+          : 0
       const payload = {
         ...rest,
         title: rest.title.trim(),
         description: rest.description.trim(),
         memo: rest.memo.trim(),
+        completedAt,
         updatedAt: now,
       }
       if (id) {
@@ -231,6 +239,33 @@ export function usePlanner(uid: string) {
     })
   }
 
+  const savePlans = async (inputs: PlanInput[]) => {
+    if (inputs.length === 0) {
+      setError('반복할 날짜를 하나 이상 선택해 주세요.')
+      return false
+    }
+    return run(async () => {
+      const now = Date.now()
+      const batch = writeBatch(fs)
+      for (const input of inputs) {
+        const completedAt =
+          input.status === 'completed'
+            ? Number(input.completedAt) || now
+            : 0
+        batch.set(doc(plansCol), {
+          ...input,
+          title: input.title.trim(),
+          description: input.description.trim(),
+          memo: input.memo.trim(),
+          completedAt,
+          createdAt: now,
+          updatedAt: now,
+        })
+      }
+      await batch.commit()
+    })
+  }
+
   const deletePlan = async (id: string) =>
     run(async () => {
       await deleteDoc(doc(plansCol, id))
@@ -238,7 +273,11 @@ export function usePlanner(uid: string) {
 
   const setPlanStatus = async (id: string, status: PlanStatus) =>
     run(async () => {
-      await updateDoc(doc(plansCol, id), { status, updatedAt: Date.now() })
+      await updateDoc(doc(plansCol, id), {
+        status,
+        completedAt: status === 'completed' ? Date.now() : 0,
+        updatedAt: Date.now(),
+      })
     })
 
   const addManualRecord = async (input: ManualRecordInput) =>
@@ -265,6 +304,34 @@ export function usePlanner(uid: string) {
       })
     })
 
+  const addFocusRecord = async (input: {
+    planId: string
+    subjectId: string
+    minutes: number
+    startedAt: number
+    endedAt: number
+    memo: string
+  }) =>
+    run(async () => {
+      const minutes = Math.round(input.minutes)
+      if (!Number.isFinite(minutes) || minutes < 1 || minutes > 1440) {
+        throw new Error('집중 시간을 기록할 수 없어요.')
+      }
+      const endedAt = input.endedAt || Date.now()
+      const startedAt = input.startedAt || endedAt - minutes * 60_000
+      await setDoc(doc(recordsCol), {
+        subjectId: input.subjectId,
+        planId: input.planId,
+        dateKey: todayKey(),
+        source: 'manual',
+        startedAt,
+        endedAt,
+        durationMs: minutes * 60_000,
+        memo: input.memo.trim(),
+        createdAt: Date.now(),
+      })
+    })
+
   const deleteRecord = async (id: string) =>
     run(async () => {
       await deleteDoc(doc(recordsCol, id))
@@ -279,9 +346,11 @@ export function usePlanner(uid: string) {
     saveSubject,
     setSubjectArchived,
     savePlan,
+    savePlans,
     deletePlan,
     setPlanStatus,
     addManualRecord,
+    addFocusRecord,
     deleteRecord,
   }
 }

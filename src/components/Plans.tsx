@@ -6,11 +6,15 @@ import {
   STATUS_LABEL,
   emptyPlanInput,
   filterPlans,
+  isDateKey,
+  repeatDates,
+  todayKey,
   validatePlan,
   type PlanErrors,
   type PlanFilters,
   type Period,
 } from '../lib/planner'
+import { addDays } from '../lib/streak'
 import { pointsForPlan } from '../lib/points'
 import type {
   PlanInput,
@@ -33,6 +37,22 @@ import {
   primaryButton,
 } from './ui'
 
+const QUICK_TEMPLATES = [
+  { title: '수학 30분', subjectName: '수학', minutes: 30 },
+  { title: '영어 20분', subjectName: '영어', minutes: 20 },
+  { title: '국어 30분', subjectName: '국어', minutes: 30 },
+] as const
+
+const REPEAT_DAYS = [
+  { label: '월', value: 1 },
+  { label: '화', value: 2 },
+  { label: '수', value: 3 },
+  { label: '목', value: 4 },
+  { label: '금', value: 5 },
+  { label: '토', value: 6 },
+  { label: '일', value: 0 },
+] as const
+
 interface PlansProps {
   planner: PlannerApi
   onNavigate: (view: View) => void
@@ -50,6 +70,18 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
 
   const activeSubjects = planner.subjects.filter((s) => !s.archived)
   const visible = filterPlans(planner.plans, filters)
+
+  const addTemplate = async (template: (typeof QUICK_TEMPLATES)[number]) => {
+    const subject =
+      activeSubjects.find((item) => item.name === template.subjectName) ??
+      activeSubjects[0]
+    if (!subject) return
+    await planner.savePlan({
+      ...emptyPlanInput([subject]),
+      title: template.title,
+      targetMinutes: template.minutes,
+    })
+  }
 
   const openNew = () => {
     if (activeSubjects.length === 0) {
@@ -114,6 +146,26 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
             </button>
           )}
         </div>
+      )}
+
+      {activeSubjects.length > 0 && (
+        <section
+          className={`${panelClass} mb-4 flex flex-wrap items-center gap-2 p-4`}
+        >
+          <span className="mr-1 text-xs font-extrabold text-[#5f5c78]">
+            빠른 루틴
+          </span>
+          {QUICK_TEMPLATES.map((template) => (
+            <button
+              key={template.title}
+              type="button"
+              onClick={() => void addTemplate(template)}
+              className="rounded-lg border border-[#f1eef9] bg-white px-2.5 py-1.5 text-xs font-bold text-[#706d8a] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff] hover:text-[#6f68e8]"
+            >
+              + {template.title}
+            </button>
+          ))}
+        </section>
       )}
 
       <section
@@ -331,26 +383,80 @@ function PlanModal({
           targetMinutes: plan.targetMinutes,
           priority: plan.priority,
           status: plan.status,
+          completedAt: plan.completedAt,
           memo: plan.memo,
         }
       : emptyPlanInput(subjects),
   )
   const [errors, setErrors] = useState<PlanErrors>({})
   const [busy, setBusy] = useState(false)
+  const initialDate = plan?.plannedDate ?? todayKey()
+  const [repeat, setRepeat] = useState(false)
+  const [repeatDays, setRepeatDays] = useState<number[]>(() => [
+    new Date(`${initialDate}T12:00:00`).getDay(),
+  ])
+  const [repeatUntil, setRepeatUntil] = useState(() =>
+    addDays(initialDate, 27),
+  )
+  const [repeatError, setRepeatError] = useState('')
 
   function set<K extends keyof PlanInput>(key: K, value: PlanInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
+    if (key === 'plannedDate' && typeof value === 'string') {
+      setRepeatUntil((prev) => (prev < value ? addDays(value, 27) : prev))
+      setRepeatDays((prev) =>
+        prev.length > 0 ? prev : [new Date(`${value}T12:00:00`).getDay()],
+      )
+      setRepeatError('')
+    }
   }
 
   const selectable = subjects.filter(
     (s) => !s.archived || s.id === plan?.subjectId,
   )
+  const repeatCount =
+    repeat && isDateKey(repeatUntil)
+      ? repeatDates(form.plannedDate, repeatUntil, repeatDays).length
+      : 0
+
+  const toggleRepeatDay = (day: number) => {
+    setRepeatDays((prev) =>
+      prev.includes(day)
+        ? prev.filter((value) => value !== day)
+        : [...prev, day].sort((a, b) => a - b),
+    )
+    setRepeatError('')
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const found = validatePlan(form, subjects, Boolean(plan))
     setErrors(found)
     if (Object.keys(found).length > 0) return
+
+    if (!plan && repeat) {
+      if (!isDateKey(repeatUntil)) {
+        setRepeatError('반복 종료일을 선택해 주세요.')
+        return
+      }
+      if (repeatDays.length === 0) {
+        setRepeatError('반복할 요일을 하나 이상 선택해 주세요.')
+        return
+      }
+      const dates = repeatDates(form.plannedDate, repeatUntil, repeatDays)
+      if (dates.length === 0) {
+        setRepeatError('선택한 기간에 반복할 날짜가 없어요.')
+        return
+      }
+      setRepeatError('')
+      setBusy(true)
+      const ok = await planner.savePlans(
+        dates.map((date) => ({ ...form, plannedDate: date })),
+      )
+      setBusy(false)
+      if (ok) onClose()
+      return
+    }
 
     setBusy(true)
     const ok = await planner.savePlan({
@@ -503,6 +609,70 @@ function PlanModal({
             className={inputClass}
           />
         </Field>
+        {!plan && (
+          <div className="rounded-xl border border-[#e6e1ff] bg-[#faf9ff] p-4 sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm font-extrabold text-[#3d3a55]">
+              <input
+                type="checkbox"
+                checked={repeat}
+                onChange={(event) => {
+                  setRepeat(event.target.checked)
+                  setRepeatError('')
+                }}
+                className="h-4 w-4 accent-[#7c74f0]"
+              />
+              반복 계획 만들기
+            </label>
+            {repeat && (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <span className="mb-2 block text-xs font-bold text-[#5f5c78]">
+                    반복 요일
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {REPEAT_DAYS.map((day) => (
+                      <button
+                        key={day.value}
+                        type="button"
+                        onClick={() => toggleRepeatDay(day.value)}
+                        aria-pressed={repeatDays.includes(day.value)}
+                        className={`grid h-9 w-9 place-items-center rounded-lg text-xs font-extrabold transition ${
+                          repeatDays.includes(day.value)
+                            ? 'bg-[#f1eeff] text-[#6a63c9] ring-1 ring-[#d6d1ff]'
+                            : 'bg-white text-[#8b88a3] ring-1 ring-[#ece8f7] hover:text-[#6f68e8]'
+                        }`}
+                      >
+                        {day.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Field label="반복 종료일">
+                  <input
+                    type="date"
+                    min={form.plannedDate}
+                    value={repeatUntil}
+                    onChange={(event) => {
+                      setRepeatUntil(event.target.value)
+                      setRepeatError('')
+                    }}
+                    className={inputClass}
+                  />
+                </Field>
+                <div className="flex items-end pb-1 text-xs text-[#8b88a3]">
+                  {repeatCount > 0
+                    ? `${repeatCount}개의 계획이 생성돼요. (최대 31개)`
+                    : '선택한 기간에 만들 계획이 없어요.'}
+                </div>
+                {repeatError && (
+                  <p className="text-xs font-semibold text-[#d96a7c] sm:col-span-2">
+                    {repeatError}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {planner.error && (
           <p className="rounded-lg bg-[#ffeff3] px-3 py-2 text-xs text-[#d96a7c] sm:col-span-2">
             {planner.error}

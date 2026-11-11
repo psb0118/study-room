@@ -6,9 +6,11 @@ import {
   emptyPlanInput,
   filterPlans,
   formatDuration,
+  repeatDates,
   startOfWeek,
   subjectTotals,
   validatePlan,
+  weeklyReport,
   withinPeriod,
 } from './planner'
 
@@ -35,6 +37,7 @@ const plan = (
   targetMinutes: 60,
   priority: 'medium',
   status: 'planned',
+  completedAt: 0,
   memo: '',
   createdAt: 0,
   updatedAt: 0,
@@ -172,5 +175,56 @@ describe('plan validation', () => {
     const input = validInput({ subjectId: 'old' })
     expect(validatePlan(input, [subject('old', true)]).subjectId).toBeTruthy()
     expect(validatePlan(input, [subject('old', true)], true)).toEqual({})
+  })
+})
+
+describe('repeat plans', () => {
+  it('선택한 요일에 맞는 날짜만 만든다', () => {
+    expect(repeatDates('2026-11-09', '2026-11-22', [1, 3])).toEqual([
+      '2026-11-09',
+      '2026-11-11',
+      '2026-11-16',
+      '2026-11-18',
+    ])
+  })
+
+  it('잘못된 기간이나 요일은 빈 배열을 돌려준다', () => {
+    expect(repeatDates('2026-11-22', '2026-11-09', [1])).toEqual([])
+    expect(repeatDates('2026-11-09', '2026-11-22', [])).toEqual([])
+  })
+})
+
+describe('weekly report', () => {
+  it('이번 주 마감된 계획과 공부 기록을 요약한다', () => {
+    const plans = [
+      plan('done', {
+        plannedDate: '2026-11-10',
+        status: 'completed',
+        completedAt: 1,
+        targetMinutes: 30,
+      }),
+      plan('missed', { plannedDate: '2026-11-09', targetMinutes: 60 }),
+      plan('future', { plannedDate: '2026-11-12', targetMinutes: 90 }),
+      plan('outside', {
+        plannedDate: '2026-11-02',
+        status: 'completed',
+        completedAt: 1,
+      }),
+    ]
+
+    const report = weeklyReport(
+      plans,
+      [record('2026-11-10', 30 * 60_000)],
+      '2026-11-11',
+    )
+
+    expect(report.start).toBe('2026-11-09')
+    expect(report.end).toBe('2026-11-15')
+    expect(report.totalPlans).toBe(2)
+    expect(report.completedPlans).toBe(1)
+    expect(report.completionRate).toBe(50)
+    expect(report.targetMinutes).toBe(90)
+    expect(report.studyMs).toBe(30 * 60_000)
+    expect(report.missed).toBe(1)
   })
 })

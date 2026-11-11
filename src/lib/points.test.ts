@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { StudyPlan } from '../types'
-import { completedPoints, levelInfo, pointsForPlan } from './points'
+import {
+  completedPoints,
+  completedPointsSince,
+  levelInfo,
+  pointsForPlan,
+} from './points'
 
 const plan = (overrides: Partial<StudyPlan> = {}): StudyPlan => ({
   id: 'p1',
@@ -13,6 +18,7 @@ const plan = (overrides: Partial<StudyPlan> = {}): StudyPlan => ({
   targetMinutes: 30,
   priority: 'medium',
   status: 'completed',
+  completedAt: 0,
   memo: '',
   createdAt: 0,
   updatedAt: 0,
@@ -36,6 +42,20 @@ describe('points', () => {
         plan({ id: 'p3', targetMinutes: 10 }),
       ]),
     ).toBe(40)
+  })
+
+  it('주간 포인트는 이번 주 완료 시각만 합산한다', () => {
+    const since = Date.UTC(2026, 10, 9)
+    expect(
+      completedPointsSince(
+        [
+          plan({ completedAt: since + 1, targetMinutes: 30 }),
+          plan({ id: 'p2', completedAt: since - 1, targetMinutes: 60 }),
+          plan({ id: 'p3', status: 'planned', completedAt: since + 1 }),
+        ],
+        since,
+      ),
+    ).toBe(25)
   })
 
   it('100포인트마다 레벨이 오른다', () => {

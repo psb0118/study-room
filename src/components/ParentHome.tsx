@@ -1,5 +1,11 @@
 import type { PlannerApi } from '../hooks/usePlanner'
-import { sortPlans, subjectMeta, todayKey } from '../lib/planner'
+import {
+  formatDuration,
+  sortPlans,
+  subjectMeta,
+  todayKey,
+  weeklyReport,
+} from '../lib/planner'
 import { completedPoints, levelInfo, pointsForPlan } from '../lib/points'
 import type { UserProfile } from '../types'
 import type { View } from './AppShell'
@@ -55,6 +61,26 @@ export function ParentWelcome({
   )
 }
 
+export function ReportStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: string
+  hint: string
+}) {
+  return (
+    <div className="rounded-xl bg-[#faf9ff] px-3 py-2.5">
+      <div className="text-[11px] font-bold text-[#8b88a3]">{label}</div>
+      <div className="mt-1 text-lg font-extrabold text-[#3d3a55]">
+        {value}
+      </div>
+      <div className="mt-0.5 text-[10px] text-[#a8a5bb]">{hint}</div>
+    </div>
+  )
+}
+
 export function ParentHome({
   parentName,
   child,
@@ -68,11 +94,27 @@ export function ParentHome({
   loading: boolean
   onNavigate: (view: View) => void
 }) {
+  if (loading) {
+    return (
+      <div>
+        <PageHeader
+          eyebrow={`PARENT VIEW · ${parentName}`}
+          title="자녀의 공부 현황"
+          description="자녀의 계획과 기록을 불러오고 있어요."
+        />
+        <section className={`${panelClass} p-10 text-center text-sm text-[#8b88a3]`}>
+          불러오는 중…
+        </section>
+      </div>
+    )
+  }
+
   const today = todayKey()
   const todayPlans = sortPlans(planner.plans.filter((p) => p.plannedDate === today))
   const completed = todayPlans.filter((p) => p.status === 'completed')
   const targetMinutes = todayPlans.reduce((sum, p) => sum + p.targetMinutes, 0)
   const points = levelInfo(completedPoints(planner.plans))
+  const report = weeklyReport(planner.plans, planner.records, today)
   const childName = child?.name ?? '자녀'
 
   return (
@@ -124,6 +166,50 @@ export function ParentHome({
           </div>
         </section>
       </div>
+
+      <section className={`${panelClass} mb-4 p-5`}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-[15px] font-extrabold tracking-[-0.025em] text-[#3d3a55]">
+              이번 주 리포트
+            </h2>
+            <p className="mt-1 text-xs text-[#8b88a3]">
+              월요일부터 오늘까지의 완료율과 공부 기록이에요.
+            </p>
+          </div>
+          <span className="rounded-full bg-[#f1eeff] px-2.5 py-1 text-[11px] font-extrabold text-[#6a63c9]">
+            {report.completedPlans}/{report.totalPlans} 완료
+          </span>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ReportStat
+            label="완료율"
+            value={`${report.completionRate}%`}
+            hint={`목표 ${report.targetMinutes}분`}
+          />
+          <ReportStat
+            label="공부 시간"
+            value={formatDuration(report.studyMs)}
+            hint="기록 기준"
+          />
+          <ReportStat
+            label="연속 학습"
+            value={`${report.streak}일`}
+            hint="현재 스트릭"
+          />
+          <ReportStat
+            label="놓친 계획"
+            value={`${report.missed}개`}
+            hint="이번 주 지난 일정"
+          />
+        </div>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#f1eef9]">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#8d86f5] to-[#b9b4ff] transition-all"
+            style={{ width: `${report.completionRate}%` }}
+          />
+        </div>
+      </section>
 
       <section className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard

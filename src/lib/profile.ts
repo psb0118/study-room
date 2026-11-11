@@ -21,17 +21,19 @@ export const DEFAULT_SUBJECTS = [
 
 export function defaultProfile(user: User): UserProfile {
   const now = Date.now()
+  const name =
+    user.displayName?.trim() || user.email?.split('@')[0] || '학생'
   return {
     uid: user.uid,
-    name:
-      user.displayName?.trim() ||
-      user.email?.split('@')[0] ||
-      '학생',
+    name,
+    nickname: name,
     email: user.email ?? '',
     photo: user.photoURL ?? '',
     role: '',
     familyCode: '',
     childUid: '',
+    childUids: [],
+    childNames: {},
     createdAt: now,
     updatedAt: now,
   }
@@ -43,16 +45,33 @@ export function normalizeProfile(
 ): UserProfile {
   const role: ProfileRole =
     data.role === 'student' || data.role === 'parent' ? data.role : ''
+  const name = String(data.name ?? (role === 'parent' ? '보호자' : '학생'))
+  const childUid = String(data.childUid ?? '')
+  const rawChildUids = Array.isArray(data.childUids) ? data.childUids : []
+  const childUids = Array.from(
+    new Set([
+      ...rawChildUids.map((value) => String(value)),
+      ...(childUid ? [childUid] : []),
+    ]),
+  )
+  const rawChildNames =
+    data.childNames && typeof data.childNames === 'object'
+      ? (data.childNames as Record<string, unknown>)
+      : {}
+  const childNames = Object.fromEntries(
+    Object.entries(rawChildNames).map(([key, value]) => [key, String(value)]),
+  )
   return {
     uid,
-    name: String(
-      data.name ?? (role === 'parent' ? '보호자' : '학생'),
-    ),
+    name,
+    nickname: String(data.nickname ?? '').trim() || name,
     email: String(data.email ?? ''),
     photo: String(data.photo ?? ''),
     role,
     familyCode: String(data.familyCode ?? ''),
-    childUid: String(data.childUid ?? ''),
+    childUid,
+    childUids,
+    childNames,
     createdAt: Number(data.createdAt) || 0,
     updatedAt: Number(data.updatedAt) || 0,
   }
