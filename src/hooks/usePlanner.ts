@@ -173,10 +173,32 @@ export function usePlanner(uid: string) {
     }
   }, [subjectsCol, plansCol, recordsCol, uid])
 
-  const run = async (action: () => Promise<void>): Promise<boolean> => {
+  const run = async (
+    action: () => Promise<void>,
+    options: { optimisticOffline?: boolean } = {},
+  ): Promise<boolean> => {
     setError(null)
+    let task: Promise<void>
     try {
-      await action()
+      task = action()
+    } catch (e) {
+      setError(messageOf(e))
+      return false
+    }
+
+    // Firestore 쓰기 Promise는 서버 확인까지 기다린다. 오프라인에서는 로컬
+    // 대기열에 저장된 즉시 UI를 닫고, 서버 동기화 실패는 나중에 알린다.
+    if (
+      options.optimisticOffline &&
+      typeof navigator !== 'undefined' &&
+      !navigator.onLine
+    ) {
+      void task.catch((e) => setError(messageOf(e)))
+      return true
+    }
+
+    try {
+      await task
       return true
     } catch (e) {
       setError(messageOf(e))
@@ -217,26 +239,29 @@ export function usePlanner(uid: string) {
 
   const savePlan = async (input: PlanInput & { id?: string }) => {
     const { id, ...rest } = input
-    return run(async () => {
-      const now = Date.now()
-      const completedAt =
-        rest.status === 'completed'
-          ? Number(rest.completedAt) || now
-          : 0
-      const payload = {
-        ...rest,
-        title: rest.title.trim(),
-        description: rest.description.trim(),
-        memo: rest.memo.trim(),
-        completedAt,
-        updatedAt: now,
-      }
-      if (id) {
-        await updateDoc(doc(plansCol, id), payload)
-      } else {
-        await setDoc(doc(plansCol), { ...payload, createdAt: now })
-      }
-    })
+    return run(
+      async () => {
+        const now = Date.now()
+        const completedAt =
+          rest.status === 'completed'
+            ? Number(rest.completedAt) || now
+            : 0
+        const payload = {
+          ...rest,
+          title: rest.title.trim(),
+          description: rest.description.trim(),
+          memo: rest.memo.trim(),
+          completedAt,
+          updatedAt: now,
+        }
+        if (id) {
+          await updateDoc(doc(plansCol, id), payload)
+        } else {
+          await setDoc(doc(plansCol), { ...payload, createdAt: now })
+        }
+      },
+      { optimisticOffline: true },
+    )
   }
 
   const savePlans = async (inputs: PlanInput[]) => {
@@ -244,26 +269,29 @@ export function usePlanner(uid: string) {
       setError('반복할 날짜를 하나 이상 선택해 주세요.')
       return false
     }
-    return run(async () => {
-      const now = Date.now()
-      const batch = writeBatch(fs)
-      for (const input of inputs) {
-        const completedAt =
-          input.status === 'completed'
-            ? Number(input.completedAt) || now
-            : 0
-        batch.set(doc(plansCol), {
-          ...input,
-          title: input.title.trim(),
-          description: input.description.trim(),
-          memo: input.memo.trim(),
-          completedAt,
-          createdAt: now,
-          updatedAt: now,
-        })
-      }
-      await batch.commit()
-    })
+    return run(
+      async () => {
+        const now = Date.now()
+        const batch = writeBatch(fs)
+        for (const input of inputs) {
+          const completedAt =
+            input.status === 'completed'
+              ? Number(input.completedAt) || now
+              : 0
+          batch.set(doc(plansCol), {
+            ...input,
+            title: input.title.trim(),
+            description: input.description.trim(),
+            memo: input.memo.trim(),
+            completedAt,
+            createdAt: now,
+            updatedAt: now,
+          })
+        }
+        await batch.commit()
+      },
+      { optimisticOffline: true },
+    )
   }
 
   const deletePlan = async (id: string) =>
