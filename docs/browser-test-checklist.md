@@ -397,10 +397,23 @@ DevTools → **Application → Session Storage**에서
 - 실패 시 DevTools Console의 오류와 Network의 실패 요청
 - 브라우저 이름·버전, 운영체제, VAPID 키 유무
 
-### 자동화로 확장할 때
+### Playwright 자동화
 
-이 절차는 로그인·알림 권한·운영체제 알림 센터가 필요한 수동 테스트를
-전제로 합니다. 나중에 Playwright로 자동화하려면 별도 테스트 계정의 로그인
-상태를 저장하고, 알림은 브라우저 권한과 타이머 대기 시간을 제어할 수 있는
-환경에서 실행해야 합니다. 현재 저장소에는 브라우저 E2E 도구가 포함되어
-있지 않습니다.
+같은 여섯 기능을 실제 브라우저에서 자동으로 클릭하는 Playwright 테스트가
+추가되어 있습니다. 설정과 실행 방법은 [E2E 테스트 안내](../e2e/README.md)를
+참고하세요.
+
+```bash
+npx playwright install chromium
+# Linux에서 libnspr4/libnss3 오류가 나면
+sudo npx playwright install-deps chromium
+E2E_EMAIL='학생 테스트 계정' E2E_PASSWORD='비밀번호' npm run test:e2e
+```
+
+자동화는 별도 학생 테스트 계정을 사용하고, 실행할 때마다 `E2E`로 시작하는
+데이터를 만들었다가 정리합니다. 다만 Chromium headless에서는 운영체제 알림
+버블을 확인할 수 없으므로, 테스트는 `Notification`과 서비스 워커의
+`showNotification` 호출을 기록해 **예약 시각·본문·중복 방지**를 검증합니다.
+실제 알림 센터에 표시되는지는 이 문서의 **2번 로컬 알림 테스트**를 수동으로
+확인하세요. VAPID 키가 설정된 빌드에서는 서버 알림 절차를 별도로 확인해야
+합니다.

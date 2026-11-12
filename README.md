@@ -62,10 +62,14 @@ npm run dev        # http://localhost:5173
 | `npm run lint` | oxlint |
 | `npm run typecheck` | `tsc -b --noEmit` |
 | `npm test` | vitest 단위 테스트 (타이머/스트릭/플래너 로직) |
+| `npm run test:e2e` | Playwright 여섯 기능 브라우저 테스트 |
+| `npm run test:e2e:headed` | 브라우저를 띄워 E2E 테스트 실행 |
+| `npm run typecheck:e2e` | Playwright 테스트 TypeScript 검사 |
 | `npm run preview` | 빌드 결과 미리보기 |
 
 브라우저에서 일정 알림·집중 타이머·밀린 계획·JSON 복원·주간 회고를 직접
 확인하려면 [브라우저 테스트 절차](docs/browser-test-checklist.md)를 참고하세요.
+Playwright 자동화는 [E2E 테스트 안내](e2e/README.md)에 정리되어 있습니다.
 
 ## Firebase 설정 (최초 1회)
 
