@@ -16,7 +16,7 @@ import { Schedule } from './components/Schedule'
 import { Stats } from './components/Stats'
 import { Subjects } from './components/Subjects'
 import { useAuth } from './hooks/useAuth'
-import { isAdminEmail } from './lib/admin'
+import { ADMIN_EMAIL, isAdminEmail } from './lib/admin'
 import { usePlanner } from './hooks/usePlanner'
 import { useChildProfile, useProfile, type ProfileApi } from './hooks/useProfile'
 import { usePointsSync } from './hooks/usePointsSync'
@@ -79,6 +79,10 @@ function Workspace({
 
   if (isAdminEmail(user.email ?? profile.email)) {
     return <AdminWorkspace profile={profile} onLogout={onLogout} />
+  }
+
+  if (profile.accountStatus === 'suspended') {
+    return <SuspendedAccount profile={profile} onLogout={onLogout} />
   }
 
   if (!profile.role) {
@@ -379,6 +383,41 @@ function PlannerError({ message }: { message: string | null }) {
   return (
     <div className="mb-4 rounded-xl border border-[#f6d6dd] bg-[#ffeff3] px-4 py-3 text-sm text-[#d96a7c]">
       {message}
+    </div>
+  )
+}
+
+function SuspendedAccount({
+  profile,
+  onLogout,
+}: {
+  profile: UserProfile
+  onLogout: () => void
+}) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#faf8ff] px-4">
+      <div className="surface w-full max-w-md p-7 text-center">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#ffeff3] text-xl">
+          ⏸
+        </div>
+        <h1 className="mt-4 text-lg font-extrabold text-[#3d3a55]">
+          계정 이용이 정지됐어요
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-[#8b88a3]">
+          {profile.nickname || profile.name || '사용자'}님의 계정은 현재 이용이
+          정지된 상태예요. 학습 기록은 그대로 보관되어 있어요.
+        </p>
+        <p className="mt-3 rounded-lg bg-[#f7f4ff] px-3 py-2 text-xs leading-relaxed text-[#706d8a]">
+          이용 재개가 필요하면 관리자({ADMIN_EMAIL})에게 문의해 주세요.
+        </p>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="btn btn-primary mt-5 w-full"
+        >
+          로그아웃
+        </button>
+      </div>
     </div>
   )
 }

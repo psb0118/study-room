@@ -144,7 +144,7 @@ export function AppShell({
           {role === 'parent'
             ? '자녀의 계획과 포인트가 Firebase에 동기화됩니다.'
             : role === 'admin'
-              ? '관리자 화면은 읽기 전용입니다.'
+              ? '관리자 화면에서 계정 이용 상태를 관리할 수 있습니다.'
               : '계획과 기록은 로그인한 계정에 동기화됩니다.'}
         </div>
       </aside>

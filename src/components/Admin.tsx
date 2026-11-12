@@ -1,4 +1,5 @@
 import { useAdminUsers } from '../hooks/useAdminUsers'
+import { ACCOUNT_STATUS_LABEL } from '../lib/accountStatus'
 import { ADMIN_EMAIL, isAdminEmail } from '../lib/admin'
 import type { UserProfile } from '../types'
 import { Avatar } from './Avatar'
@@ -23,9 +24,16 @@ function dateLabel(ms: number): string {
   }).format(new Date(ms))
 }
 
-/** 관리자 전용 읽기 화면. 사용자 데이터를 수정하지 않는다. */
+/** 관리자 전용 화면. 사용자 프로필의 이용 상태만 변경할 수 있다. */
 export function AdminDashboard({ admin }: { admin: UserProfile }) {
-  const { users, loading, error } = useAdminUsers()
+  const {
+    users,
+    loading,
+    error,
+    busyUid,
+    actionError,
+    setAccountStatus,
+  } = useAdminUsers()
   const students = users.filter((user) => user.role === 'student')
   const parents = users.filter((user) => user.role === 'parent')
   const connectedChildren = new Set(
@@ -37,7 +45,7 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
       <PageHeader
         eyebrow="ADMIN CONSOLE"
         title="관리자"
-        description={`${ADMIN_EMAIL} 계정으로 로그인했어요. 전체 사용자와 가족 연결 현황을 확인할 수 있어요.`}
+        description={`${ADMIN_EMAIL} 계정으로 로그인했어요. 전체 사용자와 가족 연결 현황을 확인하고 계정 이용 상태를 관리할 수 있어요.`}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -62,13 +70,19 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
               전체 사용자
             </h2>
             <p className="mt-1 text-sm text-[#8b88a3]">
-              이름과 이메일, 역할, 가족 연결 상태를 확인할 수 있어요.
+              이름과 이메일, 역할, 가족 연결 상태를 확인하고 계정을 정지·재개할 수 있어요.
             </p>
           </div>
           <span className="inline-flex rounded-full bg-[#f1eeff] px-2.5 py-1 text-[11px] font-extrabold text-[#6f68e8]">
             {loading ? '불러오는 중…' : `${users.length}명`}
           </span>
         </div>
+
+        {actionError && (
+          <div className="mt-4 rounded-xl border border-[#f6d6dd] bg-[#ffeff3] px-4 py-3 text-sm leading-relaxed text-[#d96a7c]">
+            {actionError}
+          </div>
+        )}
 
         {loading ? (
           <p className="mt-5 rounded-xl bg-[#faf9ff] px-4 py-4 text-sm text-[#8b88a3]">
@@ -92,6 +106,10 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
               const name = user.nickname || user.name || '이름 없음'
               const isMe = user.uid === admin.uid
               const parent = user.role === 'parent'
+              const isAdmin = isAdminEmail(user.email)
+              const suspended = user.accountStatus === 'suspended'
+              const nextStatus = suspended ? 'active' : 'suspended'
+              const statusLabel = ACCOUNT_STATUS_LABEL[user.accountStatus]
               return (
                 <li
                   key={user.uid}
@@ -111,6 +129,15 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
                       <span className="rounded-full bg-[#f1eeff] px-2 py-0.5 text-[10px] font-extrabold text-[#6a63c9]">
                         {roleLabel(user)}
                       </span>
+                      <span
+                        className={
+                          suspended
+                            ? 'rounded-full bg-[#ffeff3] px-2 py-0.5 text-[10px] font-extrabold text-[#d96a7c]'
+                            : 'rounded-full bg-[#eafaf1] px-2 py-0.5 text-[10px] font-extrabold text-[#3d9b6a]'
+                        }
+                      >
+                        {statusLabel}
+                      </span>
                     </div>
                     <p className="truncate text-xs text-[#8b88a3]">
                       {user.email || '이메일 정보 없음'}
@@ -126,6 +153,31 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
                       · {dateLabel(user.createdAt)} 가입
                     </p>
                   </div>
+                  {!isMe && !isAdmin && (
+                    <button
+                      type="button"
+                      disabled={busyUid === user.uid}
+                      onClick={() => {
+                        const message = suspended
+                          ? `${name} 계정의 이용을 다시 시작할까요?`
+                          : `${name} 계정을 정지할까요? 정지된 동안에는 학습 화면을 이용할 수 없어요.`
+                        if (window.confirm(message)) {
+                          void setAccountStatus(user.uid, nextStatus)
+                        }
+                      }}
+                      className={
+                        suspended
+                          ? 'rounded-xl border border-[#c9e9d8] bg-[#f0fbf5] px-3 py-2 text-xs font-extrabold text-[#3d9b6a] transition hover:bg-[#e6f8ee] disabled:cursor-wait disabled:opacity-60'
+                          : 'rounded-xl border border-[#f2ccd5] bg-[#fff5f7] px-3 py-2 text-xs font-extrabold text-[#d96a7c] transition hover:bg-[#ffecef] disabled:cursor-wait disabled:opacity-60'
+                      }
+                    >
+                      {busyUid === user.uid
+                        ? '처리 중…'
+                        : suspended
+                          ? '이용 재개'
+                          : '이용 정지'}
+                    </button>
+                  )}
                 </li>
               )
             })}

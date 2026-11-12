@@ -18,6 +18,9 @@ const parent: UserProfile = {
   childUid: 'student-1',
   childUids: ['student-1'],
   childNames: { 'student-1': '민준' },
+  accountStatus: 'active',
+  statusUpdatedAt: 0,
+  statusUpdatedBy: '',
   createdAt: 1,
   updatedAt: 2,
 }
@@ -33,6 +36,9 @@ const student: UserProfile = {
   childUid: '',
   childUids: [],
   childNames: {},
+  accountStatus: 'active',
+  statusUpdatedAt: 0,
+  statusUpdatedBy: '',
   createdAt: 3,
   updatedAt: 4,
 }

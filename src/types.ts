@@ -112,6 +112,8 @@ export type Role = 'student' | 'parent' | 'admin'
 
 export type ProfileRole = Role | ''
 
+export type AccountStatus = 'active' | 'suspended'
+
 export interface UserProfile {
   uid: string
   name: string
@@ -128,6 +130,10 @@ export interface UserProfile {
   childUids: string[]
   /** 자녀 uid별 표시 이름 */
   childNames: Record<string, string>
+  /** 관리자 화면에서 관리하는 계정 이용 상태 */
+  accountStatus: AccountStatus
+  statusUpdatedAt: number
+  statusUpdatedBy: string
   createdAt: number
   updatedAt: number
 }

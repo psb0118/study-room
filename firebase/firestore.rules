@@ -4,6 +4,8 @@ rules_version = '2';
 // - 학생은 자기 프로필과 플래너 데이터만 수정할 수 있다.
 // - 부모는 6자리 가족 코드로 연결된 자녀의 프로필/계획을 읽고,
 //   계획을 추가·삭제·완료 취소할 수 있다.
+// - 관리자는 사용자 프로필의 accountStatus만 변경할 수 있다.
+// - 정지된 계정은 프로필을 읽을 수 있지만, 학습 데이터 접근과 수정은 차단된다.
 // - 포인트 순위(leaderboard)는 로그인한 사용자에게 공개되는 요약 정보만 담는다.
 // - 주간 리그(weeklyLeaderboards)는 주차별 하위 컬렉션으로 분리해 공개한다.
 // - 그 외 경로는 모두 차단한다.
@@ -17,8 +19,21 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function isAccountActive() {
+      return signedIn()
+        && (
+          !exists(
+            /databases/$(database)/documents/studyUsers/$(request.auth.uid)
+          )
+          || get(
+            /databases/$(database)/documents/studyUsers/$(request.auth.uid)
+          ).data.accountStatus != 'suspended'
+        );
+    }
+
     function isParentOf(studentUid) {
       return signedIn()
+        && isAccountActive()
         && exists(
           /databases/$(database)/documents/families/$(studentUid)/parents/$(request.auth.uid)
         );
@@ -34,23 +49,40 @@ service cloud.firestore {
       return isSelf(uid) || isParentOf(uid);
     }
 
+    // 관리자는 다른 사용자의 상태 필드만 바꿀 수 있다.
+    function isAdminStatusUpdate(targetUid) {
+      return isAdmin()
+        && request.auth.uid != targetUid
+        && isAccountActive()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['accountStatus', 'statusUpdatedAt', 'statusUpdatedBy']
+        )
+        && (
+          request.resource.data.accountStatus == 'active'
+          || request.resource.data.accountStatus == 'suspended'
+        );
+    }
+
     match /studyUsers/{uid} {
       allow read: if canReadStudentData(uid) || isAdmin();
-      allow write: if isSelf(uid);
+      allow create: if isSelf(uid);
+      allow update: if (isSelf(uid) && isAccountActive())
+        || isAdminStatusUpdate(uid);
+      allow delete: if isSelf(uid) && isAccountActive();
 
       // planner: subjects / plans / records
       match /plans/{planId} {
-        allow read, write: if canReadStudentData(uid);
+        allow read, write: if canReadStudentData(uid) && isAccountActive();
       }
 
       match /subjects/{subjectId} {
-        allow read: if canReadStudentData(uid);
-        allow write: if isSelf(uid);
+        allow read: if canReadStudentData(uid) && isAccountActive();
+        allow write: if isSelf(uid) && isAccountActive();
       }
 
       match /records/{recordId} {
-        allow read: if canReadStudentData(uid);
-        allow write: if isSelf(uid);
+        allow read: if canReadStudentData(uid) && isAccountActive();
+        allow write: if isSelf(uid) && isAccountActive();
       }
     }
 
@@ -58,8 +90,10 @@ service cloud.firestore {
     match /familyCodes/{code} {
       allow read: if signedIn();
       allow create, update: if signedIn()
+        && isAccountActive()
         && request.resource.data.studentUid == request.auth.uid;
       allow delete: if signedIn()
+        && isAccountActive()
         && resource.data.studentUid == request.auth.uid;
     }
 
@@ -71,6 +105,7 @@ service cloud.firestore {
       match /parents/{parentUid} {
         allow read: if isSelf(studentUid) || isSelf(parentUid);
         allow create: if signedIn()
+          && isAccountActive()
           && request.auth.uid == parentUid
           && request.resource.data.uid == parentUid
           && request.resource.data.code is string
@@ -80,7 +115,8 @@ service cloud.firestore {
           && get(
             /databases/$(database)/documents/familyCodes/$(request.resource.data.code)
           ).data.studentUid == studentUid;
-        allow delete: if isSelf(studentUid) || isSelf(parentUid);
+        allow delete: if isAccountActive()
+          && (isSelf(studentUid) || isSelf(parentUid));
         allow update: if false;
       }
     }
@@ -89,25 +125,29 @@ service cloud.firestore {
     // 학생과 연결된 부모는 계정 정리 시 자신(자녀)의 항목을 삭제할 수 있다.
     match /leaderboard/{uid} {
       allow read: if signedIn();
-      allow create, update: if (isSelf(uid) || isParentOf(uid))
+      allow create, update: if isAccountActive()
+        && (isSelf(uid) || isParentOf(uid))
         && request.resource.data.uid == uid
         && request.resource.data.points is number
         && request.resource.data.points >= 0
         && request.resource.data.level is number
         && request.resource.data.level >= 1;
-      allow delete: if isSelf(uid) || isParentOf(uid);
+      allow delete: if isAccountActive()
+        && (isSelf(uid) || isParentOf(uid));
     }
 
     // 주간 리그. 주차별 하위 컬렉션으로 분리해 복합 인덱스 없이 조회한다.
     match /weeklyLeaderboards/{weekKey}/entries/{uid} {
       allow read: if signedIn();
-      allow create, update: if (isSelf(uid) || isParentOf(uid))
+      allow create, update: if isAccountActive()
+        && (isSelf(uid) || isParentOf(uid))
         && request.resource.data.uid == uid
         && request.resource.data.points is number
         && request.resource.data.points >= 0
         && request.resource.data.level is number
         && request.resource.data.level >= 1;
-      allow delete: if isSelf(uid) || isParentOf(uid);
+      allow delete: if isAccountActive()
+        && (isSelf(uid) || isParentOf(uid));
     }
 
     match /{document=**} {
