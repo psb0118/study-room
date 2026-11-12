@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react'
 import type { User } from 'firebase/auth'
 import type { PlannerApi } from '../hooks/usePlanner'
 import type { ProfileApi } from '../hooks/useProfile'
+import { useLinkedParents, type LinkedParent } from '../hooks/useLinkedParents'
 import type { UserProfile } from '../types'
+import { Avatar } from './Avatar'
 import { DataSettings } from './DataSettings'
 import {
   PageHeader,
@@ -30,6 +32,7 @@ export function Family({
 }: FamilyProps) {
   const [code, setCode] = useState('')
   const [copied, setCopied] = useState(false)
+  const linkedParents = useLinkedParents(profile.uid, profile.role === 'student')
 
   const copyCode = async () => {
     if (!profile.familyCode) return
@@ -148,6 +151,12 @@ export function Family({
             </p>
           </section>
         </div>
+
+        <LinkedParentsCard
+          parents={linkedParents.parents}
+          loading={linkedParents.loading}
+          error={linkedParents.error}
+        />
 
         <DataSettings
           user={user}
@@ -293,6 +302,99 @@ export function Family({
         planner={planner}
       />
     </div>
+  )
+}
+
+function LinkedParentsCard({
+  parents,
+  loading,
+  error,
+}: {
+  parents: LinkedParent[]
+  loading: boolean
+  error: string | null
+}) {
+  const connected = parents.length > 0
+  return (
+    <section className={`${panelClass} mt-4 p-6`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-extrabold tracking-[0.08em] text-[#7c74f0] uppercase">
+            CONNECTED PARENTS
+          </p>
+          <h2 className="mt-1 text-lg font-extrabold text-[#3d3a55]">
+            연결된 부모님
+          </h2>
+          <p className="mt-1 text-sm text-[#8b88a3]">
+            부모님이 연결되면 현재 이 계정과 연결된 부모님을 여기에서 확인할
+            수 있어요.
+          </p>
+        </div>
+        <span
+          className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
+            connected
+              ? 'bg-[#e8f8f0] text-[#3f9f7f]'
+              : 'bg-[#f1eeff] text-[#6f68e8]'
+          }`}
+        >
+          {loading ? '확인 중…' : connected ? `${parents.length}명 연결됨` : '아직 연결 전'}
+        </span>
+      </div>
+
+      {loading ? (
+        <p className="mt-5 rounded-xl bg-[#faf9ff] px-4 py-4 text-sm text-[#8b88a3]">
+          부모님 연결 정보를 불러오는 중…
+        </p>
+      ) : error ? (
+        <p
+          role="alert"
+          className="mt-5 rounded-xl border border-[#f6d6dd] bg-[#ffeff3] px-4 py-3 text-sm text-[#d96a7c]"
+        >
+          연결된 부모님 정보를 불러오지 못했어요. {error}
+        </p>
+      ) : connected ? (
+        <ul className="mt-4 divide-y divide-[#f1eef9]">
+          {parents.map((parent) => (
+            <li
+              key={parent.uid}
+              className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+            >
+              <Avatar name={parent.name} size={40} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="truncate text-sm font-extrabold text-[#3d3a55]">
+                    {parent.name}
+                  </strong>
+                  <span className="rounded-full bg-[#e8f8f0] px-2 py-0.5 text-[10px] font-extrabold text-[#3f9f7f]">
+                    연결됨
+                  </span>
+                </div>
+                {parent.email && (
+                  <p className="truncate text-xs text-[#8b88a3]">
+                    {parent.email}
+                  </p>
+                )}
+                {parent.linkedAt > 0 && (
+                  <p className="mt-1 text-[11px] text-[#a8a5bb]">
+                    {new Intl.DateTimeFormat('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    }).format(new Date(parent.linkedAt))}{' '}
+                    연결
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="mt-5 rounded-xl border border-dashed border-[#d6d1ff] bg-[#faf9ff] px-4 py-5 text-sm leading-relaxed text-[#8b88a3]">
+          아직 연결된 부모님이 없어요. 위 코드를 부모님께 알려주시면 연결 후
+          이곳에 표시돼요.
+        </div>
+      )}
+    </section>
   )
 }
 
