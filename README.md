@@ -64,6 +64,9 @@ npm run dev        # http://localhost:5173
 | `npm test` | vitest 단위 테스트 (타이머/스트릭/플래너 로직) |
 | `npm run preview` | 빌드 결과 미리보기 |
 
+브라우저에서 일정 알림·집중 타이머·밀린 계획·JSON 복원·주간 회고를 직접
+확인하려면 [브라우저 테스트 절차](docs/browser-test-checklist.md)를 참고하세요.
+
 ## Firebase 설정 (최초 1회)
 
 기본값은 `study-room-d0c89` 프로젝트의 웹 앱 config를 사용합니다. 다른 프로젝트를 쓰려면 `.env` 파일로 덮어쓰세요.
