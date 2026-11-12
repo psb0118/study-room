@@ -407,6 +407,13 @@ function SuspendedAccount({
           {profile.nickname || profile.name || '사용자'}님의 계정은 현재 이용이
           정지된 상태예요. 학습 기록은 그대로 보관되어 있어요.
         </p>
+        {profile.statusReason && (
+          <p className="mt-3 rounded-lg bg-[#fff5f7] px-3 py-2 text-left text-xs leading-relaxed text-[#b05b6a]">
+            <strong className="font-extrabold">정지 사유</strong>
+            <br />
+            {profile.statusReason}
+          </p>
+        )}
         <p className="mt-3 rounded-lg bg-[#f7f4ff] px-3 py-2 text-xs leading-relaxed text-[#706d8a]">
           이용 재개가 필요하면 관리자({ADMIN_EMAIL})에게 문의해 주세요.
         </p>

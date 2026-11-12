@@ -4,7 +4,7 @@ rules_version = '2';
 // - 학생은 자기 프로필과 플래너 데이터만 수정할 수 있다.
 // - 부모는 6자리 가족 코드로 연결된 자녀의 프로필/계획을 읽고,
 //   계획을 추가·삭제·완료 취소할 수 있다.
-// - 관리자는 사용자 프로필의 accountStatus만 변경할 수 있다.
+// - 관리자는 사용자 프로필의 이용 상태 필드만 변경할 수 있다.
 // - 정지된 계정은 프로필을 읽을 수 있지만, 학습 데이터 접근과 수정은 차단된다.
 // - 포인트 순위(leaderboard)는 로그인한 사용자에게 공개되는 요약 정보만 담는다.
 // - 주간 리그(weeklyLeaderboards)는 주차별 하위 컬렉션으로 분리해 공개한다.
@@ -55,11 +55,19 @@ service cloud.firestore {
         && request.auth.uid != targetUid
         && isAccountActive()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-          ['accountStatus', 'statusUpdatedAt', 'statusUpdatedBy']
+          ['accountStatus', 'statusReason', 'statusUpdatedAt', 'statusUpdatedBy']
         )
+        && request.resource.data.statusReason is string
+        && request.resource.data.statusReason.trim().size() <= 200
         && (
-          request.resource.data.accountStatus == 'active'
-          || request.resource.data.accountStatus == 'suspended'
+          (
+            request.resource.data.accountStatus == 'active'
+            && request.resource.data.statusReason.size() == 0
+          )
+          || (
+            request.resource.data.accountStatus == 'suspended'
+            && request.resource.data.statusReason.trim().size() > 0
+          )
         );
     }
 

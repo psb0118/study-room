@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { collection, doc, onSnapshot, updateDoc } from 'firebase/firestore'
 import { auth, fs } from '../firebase'
 import { firestoreMessage } from '../lib/errors'
+import { normalizeStatusReason } from '../lib/accountStatus'
 import { normalizeProfile } from '../lib/profile'
 import { STUDY_USERS } from '../lib/stats'
 import type { AccountStatus, UserProfile } from '../types'
@@ -38,10 +39,16 @@ export function useAdminUsers() {
   const setAccountStatus = async (
     uid: string,
     accountStatus: AccountStatus,
+    reason = '',
   ): Promise<boolean> => {
     if (!uid) return false
     if (auth.currentUser?.uid === uid) {
       setActionError('자기 자신의 계정 상태는 변경할 수 없어요.')
+      return false
+    }
+    const statusReason = normalizeStatusReason(reason)
+    if (accountStatus === 'suspended' && !statusReason) {
+      setActionError('이용 정지 사유를 입력해 주세요.')
       return false
     }
     setBusyUid(uid)
@@ -49,6 +56,7 @@ export function useAdminUsers() {
     try {
       await updateDoc(doc(fs, STUDY_USERS, uid), {
         accountStatus,
+        statusReason: accountStatus === 'suspended' ? statusReason : '',
         statusUpdatedAt: Date.now(),
         statusUpdatedBy: auth.currentUser?.uid ?? '',
       })

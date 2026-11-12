@@ -7,7 +7,7 @@ import {
   setDoc,
 } from 'firebase/firestore'
 import { fs } from '../firebase'
-import { normalizeAccountStatus } from './accountStatus'
+import { normalizeAccountStatus, normalizeStatusReason } from './accountStatus'
 import type { ProfileRole, UserProfile } from '../types'
 import { SUBJECT_COLORS } from './planner'
 import { STUDY_USERS } from './stats'
@@ -36,6 +36,7 @@ export function defaultProfile(user: User): UserProfile {
     childUids: [],
     childNames: {},
     accountStatus: 'active',
+    statusReason: '',
     statusUpdatedAt: 0,
     statusUpdatedBy: '',
     createdAt: now,
@@ -77,6 +78,7 @@ export function normalizeProfile(
     childUids,
     childNames,
     accountStatus: normalizeAccountStatus(data.accountStatus),
+    statusReason: normalizeStatusReason(data.statusReason),
     statusUpdatedAt: Number(data.statusUpdatedAt) || 0,
     statusUpdatedBy: String(data.statusUpdatedBy ?? ''),
     createdAt: Number(data.createdAt) || 0,

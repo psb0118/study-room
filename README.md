@@ -95,7 +95,7 @@ firebase deploy --only database,firestore:rules
 규칙 파일: `firebase/database.rules.json`, `firebase/firestore.rules`
 
 - **Realtime DB**: 로그인한 사용자만 방 읽기/쓰기, 채팅 500자·획 점 수 제한
-- **Firestore**: 학생은 본인 데이터에 접근하고, 연결된 부모는 자녀의 프로필·계획·기록을 읽고 계획을 추가·삭제·완료 취소할 수 있습니다. 관리자 이메일은 전체 프로필을 읽고 다른 계정의 이용 상태(`accountStatus`)만 변경할 수 있습니다. 가족 코드와 공개 포인트 순위·주간 리그 규칙도 포함되며, 학생/연결된 부모는 순위표 항목을 삭제할 수 있습니다.
+- **Firestore**: 학생은 본인 데이터에 접근하고, 연결된 부모는 자녀의 프로필·계획·기록을 읽고 계획을 추가·삭제·완료 취소할 수 있습니다. 관리자 이메일은 전체 프로필을 읽고 다른 계정의 이용 상태 필드(`accountStatus`, `statusReason`)만 변경할 수 있습니다. 가족 코드와 공개 포인트 순위·주간 리그 규칙도 포함되며, 학생/연결된 부모는 순위표 항목을 삭제할 수 있습니다.
 
 > 플래너 데이터는 `studyUsers/{uid}/subjects|plans|records` 하위 컬렉션에 저장됩니다. 부모 연결과 포인트 순위를 사용하려면 이 저장소의 최신 `firebase/firestore.rules`를 반드시 배포해야 합니다. 기존 규칙만 배포된 상태에서는 `Missing or insufficient permissions`가 발생할 수 있습니다.
 
@@ -129,7 +129,8 @@ Auth 콘솔 → **Settings → Authorized domains** 에 배포 도메인 추가 
 
 - 이 이메일로 로그인하면 학생·부모 화면 대신 관리자 화면이 열립니다.
 - 전체 사용자, 학생·부모 수, 부모 계정에 연결된 자녀 수를 확인할 수 있습니다.
-- 사용자별 **이용 중 / 이용 정지** 상태를 전환할 수 있습니다. 정지된 계정은 학습 데이터에 접근하지 못하고 이용 정지 안내 화면만 보게 됩니다.
+- **전체 / 이용 중 / 이용 정지** 상태 필터로 사용자를 나눠 볼 수 있습니다.
+- 사용자별 **이용 중 / 이용 정지** 상태를 전환할 수 있습니다. 정지할 때 사유를 입력하며, 사유는 관리자 목록과 정지된 사용자의 안내 화면에 표시됩니다. 정지된 계정은 학습 데이터에 접근하지 못합니다.
 - 관리자는 자기 자신의 상태를 정지할 수 없고, 프로필의 다른 내용이나 학습 데이터는 수정·삭제할 수 없습니다.
 - 관리자 판별은 `src/lib/admin.ts`와 `firebase/firestore.rules`의 `isAdmin()`에 함께 설정되어 있습니다. 이메일을 바꾸려면 두 곳을 같이 수정해야 합니다.
 - 관리자 사용자 목록을 읽으려면 최신 Firestore 규칙을 반드시 배포해야 합니다. 자동 배포 Secret이 없다면 Firebase 콘솔 → Firestore → Rules에서 `firebase/firestore.rules` 내용을 붙여넣고 게시하세요.
@@ -185,7 +186,7 @@ firebase/
   - 참가자가 모두 나가면 15초 후 방 자동 삭제
 - **Firestore**: `studyUsers/{uid}` 프로필 + 하위 컬렉션
   - Firestore 영구 캐시를 사용해 온라인에서 본 데이터와 대기 중인 변경을 기기에 보관합니다. 서비스 워커는 앱 셸과 해시된 정적 자산을 캐시합니다.
-  - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended)
+  - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended), `statusReason`(정지 사유)
   - `subjects/{subjectId}` — 이름, 색상, 보관 여부
   - `plans/{planId}` — 과목, 제목, 날짜, 시간, 목표 분, 우선순위, 상태, `completedAt`(완료 시각), 메모
   - `records/{recordId}` — 과목, 연결 계획, 날짜 키, 시작/종료, 공부 시간, 출처(room/manual)
@@ -204,7 +205,7 @@ firebase/
 | `auth/operation-not-allowed` | Authentication → Sign-in method → Email/Password 사용 설정 |
 | `Firebase: No Database URL` | Realtime Database를 생성하고 `databaseURL` 확인 |
 | `Missing or insufficient permissions` (플래너) | `firebase deploy --only firestore:rules`로 최신 Firestore 규칙 배포 |
-| 관리자 화면에서 이용 정지·재개가 안 돼요 | 최신 `firebase/firestore.rules`를 게시했는지 확인 |
+| 관리자 화면에서 이용 정지·재개가 안 돼요 | 최신 `firebase/firestore.rules`를 게시했고, 정지 사유를 입력했는지 확인 |
 | 부모 연결 코드를 찾을 수 없어요 | 자녀가 코드를 만들었는지, 최신 Firestore 규칙이 배포됐는지 확인 |
 | 포인트 순위가 비어 있어요 | 계획을 완료한 뒤 순위표 동기화를 기다리고, 로그인/규칙 상태 확인 |
 | 주간 순위가 비어 있어요 | 최신 Firestore 규칙을 배포한 뒤, 이번 주 계획을 완료하고 동기화를 기다려 주세요 |

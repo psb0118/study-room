@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import { useAdminUsers } from '../hooks/useAdminUsers'
-import { ACCOUNT_STATUS_LABEL } from '../lib/accountStatus'
+import {
+  ACCOUNT_STATUS_LABEL,
+  MAX_STATUS_REASON_LENGTH,
+} from '../lib/accountStatus'
 import { ADMIN_EMAIL, isAdminEmail } from '../lib/admin'
-import type { UserProfile } from '../types'
+import type { AccountStatus, UserProfile } from '../types'
 import { Avatar } from './Avatar'
 import { PageHeader, StatCard, panelClass } from './ui'
 
@@ -9,6 +13,8 @@ const ROLE_LABEL: Record<string, string> = {
   student: '학생',
   parent: '부모',
 }
+
+type StatusFilter = 'all' | AccountStatus
 
 function roleLabel(profile: UserProfile): string {
   if (isAdminEmail(profile.email)) return '관리자'
@@ -34,11 +40,55 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
     actionError,
     setAccountStatus,
   } = useAdminUsers()
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [suspendTarget, setSuspendTarget] = useState<UserProfile | null>(null)
+  const [reason, setReason] = useState('')
+  const [reasonError, setReasonError] = useState('')
+
   const students = users.filter((user) => user.role === 'student')
   const parents = users.filter((user) => user.role === 'parent')
   const connectedChildren = new Set(
     parents.flatMap((parent) => parent.childUids),
   )
+  const activeCount = users.filter(
+    (user) => user.accountStatus === 'active',
+  ).length
+  const suspendedCount = users.length - activeCount
+  const visibleUsers =
+    statusFilter === 'all'
+      ? users
+      : users.filter((user) => user.accountStatus === statusFilter)
+  const filters: { id: StatusFilter; label: string; count: number }[] = [
+    { id: 'all', label: '전체', count: users.length },
+    { id: 'active', label: '이용 중', count: activeCount },
+    { id: 'suspended', label: '이용 정지', count: suspendedCount },
+  ]
+
+  const closeSuspend = () => {
+    if (busyUid) return
+    setSuspendTarget(null)
+    setReason('')
+    setReasonError('')
+  }
+
+  const submitSuspend = async () => {
+    if (!suspendTarget) return
+    const trimmed = reason.trim()
+    if (!trimmed) {
+      setReasonError('이용 정지 사유를 입력해 주세요.')
+      return
+    }
+    const ok = await setAccountStatus(
+      suspendTarget.uid,
+      'suspended',
+      trimmed,
+    )
+    if (ok) {
+      setSuspendTarget(null)
+      setReason('')
+      setReasonError('')
+    }
+  }
 
   return (
     <div>
@@ -67,15 +117,38 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
               USER DIRECTORY
             </p>
             <h2 className="mt-1 text-lg font-extrabold text-[#3d3a55]">
-              전체 사용자
+              사용자 목록
             </h2>
             <p className="mt-1 text-sm text-[#8b88a3]">
-              이름과 이메일, 역할, 가족 연결 상태를 확인하고 계정을 정지·재개할 수 있어요.
+              이름과 이메일, 역할, 가족 연결 상태를 확인하고 계정을
+              정지·재개할 수 있어요.
             </p>
           </div>
           <span className="inline-flex rounded-full bg-[#f1eeff] px-2.5 py-1 text-[11px] font-extrabold text-[#6f68e8]">
-            {loading ? '불러오는 중…' : `${users.length}명`}
+            {loading
+              ? '불러오는 중…'
+              : statusFilter === 'all'
+                ? `${users.length}명`
+                : `${visibleUsers.length}/${users.length}명`}
           </span>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {filters.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              aria-pressed={statusFilter === filter.id}
+              onClick={() => setStatusFilter(filter.id)}
+              className={
+                statusFilter === filter.id
+                  ? 'rounded-xl bg-[#6f68e8] px-3 py-1.5 text-xs font-extrabold text-white'
+                  : 'rounded-xl border border-[#e6e1f5] bg-white px-3 py-1.5 text-xs font-extrabold text-[#77738f] transition hover:bg-[#faf9ff]'
+              }
+            >
+              {filter.label} {filter.count}
+            </button>
+          ))}
         </div>
 
         {actionError && (
@@ -96,19 +169,22 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
               확인해 주세요.
             </p>
           </div>
-        ) : users.length === 0 ? (
+        ) : visibleUsers.length === 0 ? (
           <p className="mt-5 rounded-xl border border-dashed border-[#d6d1ff] bg-[#faf9ff] px-4 py-5 text-sm text-[#8b88a3]">
-            아직 등록된 사용자가 없어요.
+            {users.length === 0
+              ? '아직 등록된 사용자가 없어요.'
+              : statusFilter === 'suspended'
+                ? '이용 정지된 계정이 없어요.'
+                : '조건에 맞는 사용자가 없어요.'}
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-[#f1eef9]">
-            {users.map((user) => {
+            {visibleUsers.map((user) => {
               const name = user.nickname || user.name || '이름 없음'
               const isMe = user.uid === admin.uid
               const parent = user.role === 'parent'
               const isAdmin = isAdminEmail(user.email)
               const suspended = user.accountStatus === 'suspended'
-              const nextStatus = suspended ? 'active' : 'suspended'
               const statusLabel = ACCOUNT_STATUS_LABEL[user.accountStatus]
               return (
                 <li
@@ -152,18 +228,30 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
                           : '관리자 계정'}{' '}
                       · {dateLabel(user.createdAt)} 가입
                     </p>
+                    {suspended && user.statusReason && (
+                      <p className="mt-1.5 rounded-lg bg-[#fff5f7] px-2.5 py-1.5 text-[11px] leading-relaxed text-[#b05b6a]">
+                        정지 사유: {user.statusReason}
+                      </p>
+                    )}
                   </div>
                   {!isMe && !isAdmin && (
                     <button
                       type="button"
                       disabled={busyUid === user.uid}
                       onClick={() => {
-                        const message = suspended
-                          ? `${name} 계정의 이용을 다시 시작할까요?`
-                          : `${name} 계정을 정지할까요? 정지된 동안에는 학습 화면을 이용할 수 없어요.`
-                        if (window.confirm(message)) {
-                          void setAccountStatus(user.uid, nextStatus)
+                        if (suspended) {
+                          if (
+                            window.confirm(
+                              `${name} 계정의 이용을 다시 시작할까요?`,
+                            )
+                          ) {
+                            void setAccountStatus(user.uid, 'active')
+                          }
+                          return
                         }
+                        setSuspendTarget(user)
+                        setReason('')
+                        setReasonError('')
                       }}
                       className={
                         suspended
@@ -184,6 +272,86 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
           </ul>
         )}
       </section>
+
+      {suspendTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d2a45]/35 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="suspend-title"
+            className="surface w-full max-w-md p-6"
+          >
+            <p className="text-[11px] font-extrabold tracking-[0.08em] text-[#7c74f0] uppercase">
+              SUSPEND ACCOUNT
+            </p>
+            <h2
+              id="suspend-title"
+              className="mt-1 text-lg font-extrabold text-[#3d3a55]"
+            >
+              {suspendTarget.nickname || suspendTarget.name || '사용자'} 계정
+              정지
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-[#8b88a3]">
+              정지된 동안에는 학습 화면을 이용할 수 없어요. 사용자가 확인할 수
+              있도록 사유를 남겨 주세요.
+            </p>
+
+            <label
+              htmlFor="suspend-reason"
+              className="mt-4 block text-xs font-extrabold text-[#5f5c78]"
+            >
+              정지 사유
+            </label>
+            <textarea
+              id="suspend-reason"
+              autoFocus
+              rows={4}
+              maxLength={MAX_STATUS_REASON_LENGTH}
+              value={reason}
+              onChange={(event) => {
+                setReason(event.target.value)
+                setReasonError('')
+              }}
+              placeholder="예: 운영 정책 위반, 장기 미접속"
+              className="mt-2 w-full resize-none rounded-xl border border-[#e4e0f0] bg-white px-3 py-2 text-sm leading-relaxed text-[#3d3a55] outline-none focus:border-[#8d86f5]"
+            />
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[#a8a5bb]">
+                {reason.length}/{MAX_STATUS_REASON_LENGTH}
+              </span>
+              {reasonError && (
+                <span role="alert" className="text-[11px] text-[#d96a7c]">
+                  {reasonError}
+                </span>
+              )}
+            </div>
+            {actionError && (
+              <p className="mt-3 rounded-lg bg-[#ffeff3] px-3 py-2 text-xs leading-relaxed text-[#d96a7c]">
+                {actionError}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeSuspend}
+                disabled={Boolean(busyUid)}
+                className="rounded-xl border border-[#e4e0f0] bg-white px-4 py-2 text-sm font-extrabold text-[#77738f] transition hover:bg-[#faf9ff] disabled:cursor-wait disabled:opacity-60"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitSuspend()}
+                disabled={Boolean(busyUid) || !reason.trim()}
+                className="rounded-xl bg-[#d96a7c] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#c95b6e] disabled:cursor-wait disabled:opacity-50"
+              >
+                {busyUid ? '처리 중…' : '이용 정지'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

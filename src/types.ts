@@ -132,6 +132,8 @@ export interface UserProfile {
   childNames: Record<string, string>
   /** 관리자 화면에서 관리하는 계정 이용 상태 */
   accountStatus: AccountStatus
+  /** 이용 정지 시 관리자가 입력한 사유. 재개하면 비운다. */
+  statusReason: string
   statusUpdatedAt: number
   statusUpdatedBy: string
   createdAt: number
