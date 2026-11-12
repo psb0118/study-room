@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Role } from '../types'
 import { Avatar } from './Avatar'
+import { InstallPrompt } from './InstallPrompt'
 import { OfflineNotice } from './OfflineNotice'
 
 export type View =
@@ -176,6 +177,7 @@ export function AppShell({
 
         <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
           <OfflineNotice />
+          <InstallPrompt />
           {children}
         </main>
       </div>

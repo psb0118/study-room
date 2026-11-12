@@ -21,6 +21,7 @@ import { ADMIN_EMAIL, isAdminEmail, isGoogleAccount } from './lib/admin'
 import { usePlanner } from './hooks/usePlanner'
 import { useChildProfile, useProfile, type ProfileApi } from './hooks/useProfile'
 import { usePointsSync } from './hooks/usePointsSync'
+import { useForegroundPush } from './hooks/useForegroundPush'
 import { useStudyReminder } from './hooks/useStudyReminder'
 import type { UserProfile } from './types'
 
@@ -159,6 +160,7 @@ function StudentWorkspace({
   const [view, setView] = useState<View>('home')
   const [code, setCode] = useState<string | null>(null)
   useStudyReminder(profile)
+  useForegroundPush(profile.pushEnabled)
   usePointsSync(user.uid, profile, planner.plans, !planner.loading)
 
   if (code) {

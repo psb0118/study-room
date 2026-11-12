@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
 import { authMessage } from '../lib/errors'
+import { removePushToken } from '../lib/push'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -90,6 +91,8 @@ export function useAuth() {
   }
 
   const logout = async () => {
+    const uid = auth.currentUser?.uid
+    if (uid) await removePushToken(uid)
     await signOut(auth)
   }
 

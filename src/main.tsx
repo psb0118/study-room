@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { logAppError } from './lib/errorLog'
+import { captureInstallPrompt } from './lib/installPrompt'
 
 /**
  * 프로덕션 빌드에서 앱 셸을 서비스 워커에 캐시한다.
@@ -42,6 +43,7 @@ function registerAppShell() {
 }
 
 registerAppShell()
+captureInstallPrompt()
 
 window.addEventListener('error', (event) => {
   logAppError(event.error ?? event.message, 'window.error')

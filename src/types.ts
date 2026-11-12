@@ -138,9 +138,16 @@ export interface UserProfile {
   statusUpdatedBy: string
   /** 과목 id별 주간 목표 분량 */
   weeklyGoals: Record<string, number>
-  /** 앱을 열어둔 동안 보낼 학습 알림 */
+  /** 학습 알림 사용 여부 */
   reminderEnabled: boolean
   reminderTime: string
+  /** IANA 시간대. 예: Asia/Seoul */
+  reminderTimezone: string
+  /** FCM 기기 토큰이 등록됐는지 여부 */
+  pushEnabled: boolean
+  /** 서버가 마지막으로 알림을 보낸 로컬 날짜 */
+  lastReminderKey: string
+  lastReminderAt: number
   createdAt: number
   updatedAt: number
 }

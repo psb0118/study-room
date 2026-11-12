@@ -1,5 +1,5 @@
 /* 하루결 오프라인 앱 셸 */
-const CACHE_VERSION = 'haru-gyeol-v1'
+const CACHE_VERSION = 'haru-gyeol-v2'
 const SHELL_CACHE = `${CACHE_VERSION}-shell`
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 const SCOPE_URL = new URL('./', self.registration.scope)
@@ -50,6 +50,23 @@ self.addEventListener('message', (event) => {
       const cache = await caches.open(RUNTIME_CACHE)
       await Promise.allSettled(urls.map((url) => cache.add(url)))
     })(),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = new URL('./', self.registration.scope).href
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((windows) => {
+        for (const client of windows) {
+          if (client.url.startsWith(target) && 'focus' in client) {
+            return client.focus()
+          }
+        }
+        return self.clients.openWindow(target)
+      }),
   )
 })
 

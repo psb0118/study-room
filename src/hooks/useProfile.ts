@@ -36,6 +36,8 @@ export interface ProfileApi {
     weeklyGoals?: Record<string, number>
     reminderEnabled?: boolean
     reminderTime?: string
+    reminderTimezone?: string
+    pushEnabled?: boolean
   }) => Promise<boolean>
   linkChild: (code: string) => Promise<boolean>
   unlinkChild: (childUid?: string) => Promise<boolean>
@@ -166,6 +168,8 @@ export function useProfile(user: User): ProfileApi {
     weeklyGoals?: Record<string, number>
     reminderEnabled?: boolean
     reminderTime?: string
+    reminderTimezone?: string
+    pushEnabled?: boolean
   }): Promise<boolean> => {
     if (!profile) {
       setActionError('프로필을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.')
@@ -174,6 +178,14 @@ export function useProfile(user: User): ProfileApi {
     if (patch.reminderTime && !isTime(patch.reminderTime)) {
       setActionError('올바른 알림 시간을 선택해 주세요.')
       return false
+    }
+    if (patch.reminderTimezone) {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: patch.reminderTimezone })
+      } catch {
+        setActionError('올바른 시간대를 선택해 주세요.')
+        return false
+      }
     }
     return run(async () => {
       const payload: Record<string, unknown> = { updatedAt: Date.now() }
@@ -184,6 +196,12 @@ export function useProfile(user: User): ProfileApi {
         payload.reminderEnabled = patch.reminderEnabled
       }
       if (patch.reminderTime) payload.reminderTime = patch.reminderTime
+      if (patch.reminderTimezone) {
+        payload.reminderTimezone = patch.reminderTimezone
+      }
+      if (typeof patch.pushEnabled === 'boolean') {
+        payload.pushEnabled = patch.pushEnabled
+      }
       await updateDoc(userRef, payload)
     })
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { PlannerApi } from '../hooks/usePlanner'
 import type { ProfileApi } from '../hooks/useProfile'
 import {
@@ -6,6 +6,11 @@ import {
   weeklyGoalRows,
 } from '../lib/goals'
 import { formatDuration } from '../lib/planner'
+import {
+  isPushSupported,
+  registerPushToken,
+  removePushToken,
+} from '../lib/push'
 import type { UserProfile } from '../types'
 import {
   PageHeader,
@@ -207,37 +212,29 @@ function ReminderSettings({
   profile: UserProfile
   profileApi: ProfileApi
 }) {
-  const supported =
-    typeof window !== 'undefined' && 'Notification' in window
+  const [supported, setSupported] = useState(false)
   const [enabled, setEnabled] = useState(profile.reminderEnabled)
+  const [pushEnabled, setPushEnabled] = useState(profile.pushEnabled)
   const [time, setTime] = useState(profile.reminderTime)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const permission = supported ? Notification.permission : 'unsupported'
+  const permission =
+    typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission
+      : 'unsupported'
+  const timezone =
+    Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Seoul'
 
-  const save = async (nextEnabled: boolean) => {
-    setError(null)
-    setNotice(null)
-    setBusy(true)
-    const ok = await profileApi.savePreferences({
-      reminderEnabled: nextEnabled,
-      reminderTime: time,
-    })
-    setBusy(false)
-    if (ok) {
-      setEnabled(nextEnabled)
-      setNotice(
-        nextEnabled
-          ? '학습 알림을 켰어요. 앱을 열어둔 동안 알려드릴게요.'
-          : '학습 알림을 껐어요.',
-      )
-    }
-  }
+  useEffect(() => {
+    void isPushSupported().then(setSupported)
+  }, [])
 
   const enable = async () => {
+    setError(null)
+    setNotice(null)
     if (!supported) {
-      setError('이 브라우저는 알림을 지원하지 않아요.')
+      setError('이 브라우저에서는 백그라운드 알림을 지원하지 않아요.')
       return
     }
     const result = await Notification.requestPermission()
@@ -245,7 +242,71 @@ function ReminderSettings({
       setError('브라우저 알림 권한이 필요해요. 주소창의 알림 설정을 확인해 주세요.')
       return
     }
-    await save(true)
+    setBusy(true)
+    const registered = await registerPushToken(profile.uid)
+    if (!registered.ok) {
+      setBusy(false)
+      setError(registered.error ?? '기기 등록에 실패했어요.')
+      return
+    }
+    const ok = await profileApi.savePreferences({
+      reminderEnabled: true,
+      reminderTime: time,
+      reminderTimezone: timezone,
+      pushEnabled: true,
+    })
+    setBusy(false)
+    if (!ok) {
+      await removePushToken(profile.uid)
+      return
+    }
+    setEnabled(true)
+    setPushEnabled(true)
+    setNotice('백그라운드 알림을 켰어요. 앱을 닫아도 알림을 받을 수 있어요.')
+  }
+
+  const disable = async () => {
+    setError(null)
+    setNotice(null)
+    setBusy(true)
+    await removePushToken(profile.uid)
+    const ok = await profileApi.savePreferences({
+      reminderEnabled: false,
+      pushEnabled: false,
+    })
+    setBusy(false)
+    if (ok) {
+      setEnabled(false)
+      setPushEnabled(false)
+      setNotice('학습 알림을 껐어요.')
+    }
+  }
+
+  const updateTime = async () => {
+    setError(null)
+    setNotice(null)
+    setBusy(true)
+    const ok = await profileApi.savePreferences({
+      reminderEnabled: true,
+      reminderTime: time,
+      reminderTimezone: timezone,
+      pushEnabled: true,
+    })
+    setBusy(false)
+    if (ok) setNotice('알림 시간을 변경했어요.')
+  }
+
+  const updateLocalTime = async () => {
+    setError(null)
+    setNotice(null)
+    setBusy(true)
+    const ok = await profileApi.savePreferences({
+      reminderEnabled: true,
+      reminderTime: time,
+      reminderTimezone: timezone,
+    })
+    setBusy(false)
+    if (ok) setNotice('알림 시간을 변경했어요.')
   }
 
   return (
@@ -256,12 +317,16 @@ function ReminderSettings({
             학습 알림
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-[#8b88a3]">
-            앱을 열어둔 동안 정한 시간에 공부 시작을 알려드려요. 앱을 닫은
-            뒤의 백그라운드 알림은 지원하지 않아요.
+            앱을 닫아도 정한 시간에 공부 시작을 알려드려요. 브라우저 알림
+            권한을 허용하고 기기를 등록해야 합니다.
           </p>
         </div>
         <span className="rounded-full bg-[#faf9ff] px-2.5 py-1 text-[11px] font-extrabold text-[#8b88a3]">
-          {permission === 'granted' ? '권한 허용됨' : '브라우저 알림'}
+          {pushEnabled
+            ? '백그라운드 알림 켜짐'
+            : enabled
+              ? '로컬 알림만 켜짐'
+              : '알림 꺼짐'}
         </span>
       </div>
 
@@ -279,30 +344,77 @@ function ReminderSettings({
             className={`${inputClass} mt-1 block`}
           />
         </label>
-        <button
-          type="button"
-          onClick={() => void (enabled ? save(false) : enable())}
-          disabled={busy || (!supported && !enabled)}
-          className={enabled ? ghostButton : primaryButton}
-        >
-          {busy
-            ? '저장 중…'
-            : enabled
-              ? '알림 끄기'
-              : '알림 켜기'}
-        </button>
-        {enabled && (
-          <button
-            type="button"
-            onClick={() => void save(true)}
-            disabled={busy}
-            className={ghostButton}
-          >
-            시간 변경
-          </button>
+        {pushEnabled ? (
+          <>
+            <button
+              type="button"
+              onClick={() => void disable()}
+              disabled={busy}
+              className={ghostButton}
+            >
+              {busy ? '저장 중…' : '알림 끄기'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void updateTime()}
+              disabled={busy}
+              className={ghostButton}
+            >
+              시간 변경
+            </button>
+          </>
+        ) : (
+          <>
+            {enabled && (
+              <button
+                type="button"
+                onClick={() => void disable()}
+                disabled={busy}
+                className={ghostButton}
+              >
+                {busy ? '저장 중…' : '알림 끄기'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => void enable()}
+              disabled={busy || !supported}
+              className={primaryButton}
+            >
+              {busy ? '등록 중…' : '백그라운드 알림 켜기'}
+            </button>
+            {enabled && (
+              <button
+                type="button"
+                onClick={() => void updateLocalTime()}
+                disabled={busy}
+                className={ghostButton}
+              >
+                시간 변경
+              </button>
+            )}
+          </>
         )}
       </div>
 
+      {!supported && (
+        <p className="mt-3 text-xs leading-relaxed text-[#b26a3f]">
+          이 브라우저는 백그라운드 알림을 지원하지 않아요. Chrome·Edge 또는
+          홈 화면에 설치한 PWA에서 사용해 주세요.
+        </p>
+      )}
+      {enabled && !pushEnabled && (
+        <p className="mt-3 text-xs leading-relaxed text-[#8b88a3]">
+          현재는 앱을 열어둔 동안만 알림을 받는 로컬 알림 상태예요. 위 버튼을
+          누르면 앱을 닫아도 받을 수 있는 백그라운드 알림으로 전환됩니다.
+        </p>
+      )}
+      {permission === 'denied' && (
+        <p className="mt-3 text-xs leading-relaxed text-[#d96a7c]">
+          브라우저에서 이 사이트의 알림이 차단되어 있어요. 주소창의 사이트
+          설정에서 알림을 허용해 주세요.
+        </p>
+      )}
       {error && (
         <p className="mt-3 rounded-xl bg-[#ffeff3] px-3.5 py-2.5 text-sm text-[#d96a7c]">
           {error}
@@ -311,6 +423,11 @@ function ReminderSettings({
       {notice && (
         <p className="mt-3 rounded-xl bg-[#eafaf1] px-3.5 py-2.5 text-sm text-[#3d9b6a]">
           {notice}
+        </p>
+      )}
+      {profileApi.actionError && (
+        <p className="mt-3 rounded-xl bg-[#ffeff3] px-3.5 py-2.5 text-sm text-[#d96a7c]">
+          {profileApi.actionError}
         </p>
       )}
     </section>

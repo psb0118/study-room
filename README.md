@@ -38,7 +38,8 @@
 
 - **데이터 내보내기** — 현재 계정(부모는 선택한 자녀)의 프로필·과목·계획·기록을 JSON 또는 CSV로 저장합니다. 네트워크를 다시 호출하지 않아 오프라인에서도 내보낼 수 있습니다.
 - **주간 목표** — 과목별 주간 공부 시간 목표를 설정하고 이번 주 기록과 비교합니다. 부모 화면에서도 자녀의 목표 달성률을 볼 수 있습니다.
-- **학습 알림** — 브라우저 알림 권한을 허용하면 앱을 열어둔 동안 정한 시간에 공부 알림을 받습니다.
+- **백그라운드 학습 알림** — 브라우저 알림 권한과 FCM 기기 등록을 마치면, 앱을 닫아도 설정한 시간에 공부 알림을 받습니다. Cloud Functions가 사용자 시간대 기준으로 5분마다 발송합니다.
+- **PWA 설치** — Android Chrome에서는 설치 버튼으로, iPhone Safari에서는 공유 → 홈 화면에 추가로 스토어 없이 앱처럼 설치할 수 있습니다.
 - **계정 삭제** — 비밀번호 또는 Google 재인증과 확인 문구를 거친 뒤 프로필, 플래너 데이터, 가족 연결 코드, 순위표·주간 리그 항목을 정리하고 Auth 계정을 삭제합니다. 부모 계정 삭제 시 자녀의 학습 데이터는 유지됩니다.
 - **오프라인 지원** — Firestore 영구 캐시로 마지막 데이터를 읽고 변경을 대기열에 저장하며, 서비스 워커가 앱 셸과 해시된 JS/CSS를 캐시합니다. 오프라인 중에는 상단에 상태 안내가 표시되고, 연결이 돌아오면 저장 내용이 자동 동기화됩니다.
 
@@ -72,6 +73,8 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 # 선택: Firebase App Check reCAPTCHA v3 사이트 키
 VITE_RECAPTCHA_SITE_KEY=...
+# 백그라운드 알림: Cloud Messaging → Web Push certificates의 공개 키
+VITE_FCM_VAPID_KEY=...
 ```
 
 ### 1) 로그인 활성화
@@ -125,7 +128,48 @@ firebase deploy --only database,firestore:rules
 
 > `FIREBASE_TOKEN`은 Firebase 계정 권한을 가진 비밀값입니다. 저장소 Secret으로만 보관하고, 노출이 의심되면 `firebase login:ci`로 재발급해 교체하세요.
 
-### 4) 호스트 도메인 확인
+### 4) 백그라운드 학습 알림 (Blaze 필요)
+
+Cloud Functions와 Cloud Scheduler를 쓰려면 Firebase 프로젝트를 **Blaze 요금제**로
+전환해야 합니다. 정적 GitHub Pages 배포만으로는 서버 알림이 켜지지 않습니다.
+
+1. Firebase Console → **Cloud Messaging → Web Push certificates**에서 키 쌍을
+   생성하고 **공개 키**를 복사합니다.
+2. GitHub 저장소 → **Settings → Secrets and variables → Actions → Variables**에
+   `VITE_FCM_VAPID_KEY`를 추가합니다. 이 값은 클라이언트 공개 키이며 비밀값은
+   아닙니다.
+3. 최신 Firestore 규칙을 배포합니다. `studyUsers/{uid}/devices` 규칙이 없으면
+   기기 등록이 `Missing or insufficient permissions`로 실패합니다.
+4. 함수를 배포합니다.
+
+   ```bash
+   cd functions
+   npm ci
+   npm run build
+   firebase login
+   firebase use study-room-d0c89
+   firebase deploy --only functions
+   ```
+
+5. `main`에 푸시해 Pages를 다시 배포한 뒤, 학생 화면의 **주간 목표 → 학습 알림**에서
+   **백그라운드 알림 켜기**를 누릅니다. 브라우저 알림 권한을 허용해야 합니다.
+6. iPhone은 iOS 16.4 이상에서 **Safari → 공유 → 홈 화면에 추가**로 설치한 PWA에서만
+   웹 푸시를 받을 수 있습니다.
+
+배포되는 함수는 `functions/src/index.ts`의 `sendStudyReminders`입니다.
+`asia-northeast3`에서 5분마다 실행되며, 각 사용자의 `reminderTimezone`과
+`reminderTime`을 비교해 하루 한 번만 발송합니다. 정지된 계정과 기기 토큰이 없는
+사용자는 건너뜁니다.
+
+> `public/push-sw.js`에는 기본 Firebase 프로젝트 설정이 들어 있습니다. 다른
+> Firebase 프로젝트를 쓴다면 `src/firebase.ts`와 `public/push-sw.js`의 설정을
+> 함께 맞춰야 합니다. 서비스 계정 키는 저장소에 넣지 마세요.
+>
+> `main`에 `functions/**` 또는 `firebase.json` 변경이 푸시되면
+> **Deploy Cloud Functions** 워크플로우가 실행됩니다. `FIREBASE_TOKEN` Secret이
+> 없으면 배포를 건너뛰고, Secret이 있어도 Blaze 요금제가 아니면 배포가 실패합니다.
+
+### 5) 호스트 도메인 확인
 
 Auth 콘솔 → **Settings → Authorized domains** 에 배포 도메인 추가 (로컬호스트는 기본 포함).
 
@@ -159,6 +203,7 @@ src/
     useAdminUsers.ts     관리자 사용자 목록 조회·계정 상태 변경
     useAdminErrors.ts    관리자 오류 로그 조회
     useStudyReminder.ts  앱이 열린 동안 로컬 학습 알림 예약
+    useForegroundPush.ts FCM 포그라운드 알림 표시
   lib/
     accountStatus.ts     계정 이용 상태 정규화·라벨
     admin.ts             관리자 이메일·Google 로그인 판별
@@ -175,6 +220,10 @@ src/
     account.ts           재인증 후 계정·가족·학습 데이터 삭제
     weeklyKeys.ts        계정 삭제 시 정리할 주간 리그 키
     errors.ts            Firebase 오류 한국어 메시지
+    push.ts              FCM 권한·기기 토큰 등록·해제
+    notifications.ts     모바일/데스크톱 브라우저 알림 표시
+    installPrompt.ts     PWA 설치 이벤트 보관
+    timeZone.ts          IANA 시간대 검증
     stats.ts             프로필 부트스트랩, 스터디 룸 집중 기록
   components/
     AppShell             역할별 사이드바·모바일 하단 내비게이션
@@ -182,11 +231,20 @@ src/
     Family / Leaderboard / ParentHome / PointsCard
     DataSettings / OfflineNotice / AppErrorBoundary
     Goals / ErrorMonitor (Admin 내부)
+    InstallPrompt        PWA 설치 버튼·iOS 안내
     TimerPanel / Whiteboard / Chat / Members
     FocusTimer / Plans / Subjects / Records / Stats / Schedule
     ui                   공통 카드·모달·입력·탭·차트
 public/
   sw.js                 오프라인 앱 셸 서비스 워커
+  push-sw.js            FCM 백그라운드 푸시 서비스 워커 (별도 scope)
+  manifest.webmanifest  PWA 매니페스트
+  icons/                PWA·홈 화면 아이콘
+functions/
+  src/index.ts          sendStudyReminders 예약 함수
+  src/reminders.ts       대상 조회·중복 방지
+  src/push.ts            FCM 멀티캐스트·만료 토큰 정리
+  src/time.ts            시간대·알림 시간 계산
 firebase/
   database.rules.json    Realtime Database 보안 규칙
   firestore.rules        Firestore 보안 규칙
@@ -200,7 +258,8 @@ firebase/
   - 참가자가 모두 나가면 15초 후 방 자동 삭제
 - **Firestore**: `studyUsers/{uid}` 프로필 + 하위 컬렉션
   - Firestore 영구 캐시를 사용해 온라인에서 본 데이터와 대기 중인 변경을 기기에 보관합니다. 서비스 워커는 앱 셸과 해시된 정적 자산을 캐시합니다.
-  - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended), `statusReason`(정지 사유), `weeklyGoals`(과목별 주간 목표), `reminderEnabled`, `reminderTime`
+  - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended), `statusReason`(정지 사유), `weeklyGoals`(과목별 주간 목표), `reminderEnabled`, `reminderTime`, `reminderTimezone`, `pushEnabled`, `lastReminderKey`, `lastReminderAt`
+  - `studyUsers/{uid}/devices/{tokenHash}` — FCM 웹 푸시 기기 토큰, 브라우저 정보, 등록·확인 시각
   - `subjects/{subjectId}` — 이름, 색상, 보관 여부
   - `plans/{planId}` — 과목, 제목, 날짜, 시간, 목표 분, 우선순위, 상태, `completedAt`(완료 시각), 메모
   - `records/{recordId}` — 과목, 연결 계획, 날짜 키, 시작/종료, 공부 시간, 출처(room/manual)
@@ -226,6 +285,8 @@ firebase/
 | 부모 연결 코드를 찾을 수 없어요 | 자녀가 코드를 만들었는지, 최신 Firestore 규칙이 배포됐는지 확인 |
 | 포인트 순위가 비어 있어요 | 계획을 완료한 뒤 순위표 동기화를 기다리고, 로그인/규칙 상태 확인 |
 | 주간 순위가 비어 있어요 | 최신 Firestore 규칙을 배포한 뒤, 이번 주 계획을 완료하고 동기화를 기다려 주세요 |
+| 백그라운드 알림이 오지 않아요 | 알림 권한 허용, `VITE_FCM_VAPID_KEY` 설정, Functions 배포, Firestore `devices` 규칙, Blaze 요금제를 확인하세요. iPhone은 홈 화면에 설치한 PWA에서만 동작합니다 |
+| 앱 설치 버튼이 보이지 않아요 | HTTPS(또는 localhost)로 접속하고, `manifest.webmanifest`와 서비스 워커가 로드되는지 확인하세요. iPhone Safari는 공유 → 홈 화면에 추가를 사용합니다 |
 | 오프라인에서 앱이 열리지 않아요 | 프로덕션 빌드로 한 번 이상 접속해 서비스 워커를 등록하고, 브라우저 사이트 데이터를 지우지 마세요 |
 | 계정 삭제가 `requires-recent-login`으로 실패해요 | 로그아웃 후 다시 로그인하거나, 이메일 계정은 비밀번호를 정확히 입력하고 Google 계정은 재인증 창을 완료해 주세요 |
 | 화이트보드 저장 거부 | Firebase 콘솔 RTDB 규칙에 최신 `database.rules.json` 게시 |

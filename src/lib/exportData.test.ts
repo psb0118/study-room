@@ -25,6 +25,10 @@ const parent: UserProfile = {
   weeklyGoals: {},
   reminderEnabled: false,
   reminderTime: '19:00',
+  reminderTimezone: 'Asia/Seoul',
+  pushEnabled: false,
+  lastReminderKey: '',
+  lastReminderAt: 0,
   createdAt: 1,
   updatedAt: 2,
 }
@@ -47,6 +51,10 @@ const student: UserProfile = {
   weeklyGoals: {},
   reminderEnabled: false,
   reminderTime: '19:00',
+  reminderTimezone: 'Asia/Seoul',
+  pushEnabled: false,
+  lastReminderKey: '',
+  lastReminderAt: 0,
   createdAt: 3,
   updatedAt: 4,
 }

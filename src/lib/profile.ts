@@ -9,6 +9,7 @@ import {
 import { fs } from '../firebase'
 import { normalizeAccountStatus, normalizeStatusReason } from './accountStatus'
 import { normalizeWeeklyGoals } from './goals'
+import { normalizeTimeZone } from './timeZone'
 import type { ProfileRole, UserProfile } from '../types'
 import { SUBJECT_COLORS } from './planner'
 import { STUDY_USERS } from './stats'
@@ -43,6 +44,10 @@ export function defaultProfile(user: User): UserProfile {
     weeklyGoals: {},
     reminderEnabled: false,
     reminderTime: '19:00',
+    reminderTimezone: 'Asia/Seoul',
+    pushEnabled: false,
+    lastReminderKey: '',
+    lastReminderAt: 0,
     createdAt: now,
     updatedAt: now,
   }
@@ -92,6 +97,10 @@ export function normalizeProfile(
     )
       ? String(data.reminderTime)
       : '19:00',
+    reminderTimezone: normalizeTimeZone(data.reminderTimezone),
+    pushEnabled: data.pushEnabled === true,
+    lastReminderKey: String(data.lastReminderKey ?? ''),
+    lastReminderAt: Number(data.lastReminderAt) || 0,
     createdAt: Number(data.createdAt) || 0,
     updatedAt: Number(data.updatedAt) || 0,
   }

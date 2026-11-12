@@ -72,13 +72,52 @@ gcloud firestore import \
 - 관리자 이메일을 바꾸려면 `src/lib/admin.ts`와 Firestore 규칙의 `isAdmin()`을
   함께 수정하고 다시 배포해야 합니다.
 
-## 5. 학습 알림의 범위
+## 5. 백그라운드 학습 알림
 
-현재 알림은 브라우저 Notification API를 사용하며 **앱을 열어둔 동안**만
-동작합니다. 앱을 닫은 뒤의 푸시 알림은 Firebase Cloud Messaging과 서버 측
-발송 작업이 필요하므로 이 저장소의 정적 배포만으로는 지원하지 않습니다.
+알림은 두 단계로 동작합니다.
 
-## 6. 데이터 내보내기
+- **로컬 알림**: 앱을 열어둔 동안 `useStudyReminder`가 브라우저 Notification을
+  표시합니다. FCM 기기를 등록하기 전의 기존 동작입니다.
+- **백그라운드 알림**: FCM 웹 푸시 기기 토큰을 등록하면 Cloud Functions의
+  `sendStudyReminders`가 5분마다 실행되어 앱을 닫아도 알림을 보냅니다.
+
+서버 발송을 켜려면 다음이 필요합니다.
+
+1. Firebase 프로젝트를 **Blaze 요금제**로 전환합니다.
+2. **Cloud Messaging → Web Push certificates**에서 VAPID 키 쌍을 만들고 공개 키를
+   GitHub Actions 변수 `VITE_FCM_VAPID_KEY`로 설정합니다.
+3. 최신 Firestore 규칙을 배포합니다. 기기 토큰은
+   `studyUsers/{uid}/devices/{tokenHash}`에만 저장되며 본인만 읽고 쓸 수 있습니다.
+4. `functions/`에서 `npm ci && npm run build` 후
+   `firebase deploy --only functions`를 실행합니다.
+5. 앱에서 **백그라운드 알림 켜기**를 눌러 브라우저 권한을 허용합니다.
+
+운영 기준:
+
+- 함수는 `asia-northeast3`에서 5분마다 실행되며, 사용자별
+  `reminderTimezone`과 `reminderTime`으로 로컬 시간을 계산합니다.
+- `lastReminderKey`로 하루 한 번만 발송합니다.
+- `accountStatus == 'suspended'`인 계정과 기기 토큰이 없는 계정은 제외합니다.
+- 만료된 FCM 토큰은 발송 결과에서 확인해 기기 문서를 삭제합니다.
+- 알림 본문에는 민감한 학습 내용을 넣지 않습니다.
+- 함수 로그에 FCM 토큰 원문을 남기지 않습니다.
+- iPhone은 iOS 16.4 이상에서 홈 화면에 설치한 PWA에서만 웹 푸시를 받을 수
+  있습니다.
+
+> GitHub Pages 배포와 Cloud Functions 배포는 별개입니다. Pages 워크플로우는
+> 정적 클라이언트만 올리며, Functions는 Firebase CLI/GCP 권한이 있는 사람이
+> 배포해야 합니다.
+
+## 6. PWA 설치
+
+- `public/manifest.webmanifest`와 `public/icons/`가 설치 정보를 제공합니다.
+- Android Chrome은 설치 가능 조건을 만족하면 앱 안의 **앱 설치** 버튼 또는
+  브라우저 메뉴에서 설치할 수 있습니다.
+- iPhone Safari는 공유 → **홈 화면에 추가**를 사용합니다.
+- 설치는 HTTPS(또는 localhost)에서만 동작하며, 서비스 워커가 등록되어야 합니다.
+- 설치형 PWA는 스토어 업로드 없이 홈 화면에서 독립 창으로 실행됩니다.
+
+## 7. 데이터 내보내기
 
 - 학생·부모: 데이터 관리 화면에서 JSON 및 CSV를 내려받을 수 있습니다.
 - 관리자: 사용자 목록을 CSV로 내려받을 수 있습니다.

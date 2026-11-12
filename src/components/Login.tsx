@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { InstallPrompt } from './InstallPrompt'
 import { inputClass, primaryButton } from './ui'
 
 interface LoginProps {
@@ -90,6 +91,7 @@ export function Login({
       <div className="pointer-events-none absolute -right-24 -bottom-24 h-72 w-72 rounded-full bg-[#e8f8f0] blur-3xl" />
 
       <div className="relative w-full max-w-sm">
+        <InstallPrompt />
         <div className="mb-6 text-center">
           <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[#b9b4ff] to-[#8d86f5] text-2xl text-white shadow-[0_10px_24px_rgba(141,134,245,0.3)]">
             ⌁
