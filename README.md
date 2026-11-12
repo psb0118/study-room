@@ -108,25 +108,38 @@ firebase deploy --only database,firestore:rules
 >
 > App Check, 오류 모니터링, Firestore 백업, 관리자 Google 전용 로그인 설정은 [보안·운영 문서](docs/security-and-operations.md)를 참고하세요.
 
-#### Firestore 규칙 자동 배포 (선택)
+#### Firestore 규칙·Functions 자동 배포 (서비스 계정)
 
-`firebase/firestore.rules` 또는 `firebase.json`이 `main`에 푸시되면 GitHub Actions가 Firestore 규칙을 자동 배포합니다.
+`firebase/firestore.rules`, `functions/**`, `firebase.json`이 `main`에 푸시되면
+GitHub Actions가 배포합니다. `FIREBASE_TOKEN` 대신 **GCP 서비스 계정 키**를
+사용합니다.
 
-1. 로컬에서 CI 토큰을 발급합니다.
+1. Google Cloud Console → **IAM 및 관리자 → 서비스 계정 → 서비스 계정 만들기**에서
+   배포용 계정(예: `firebase-deployer`)을 만듭니다.
+2. 프로젝트 IAM에서 다음 역할을 부여합니다.
+   - `Cloud Functions Admin` (`roles/cloudfunctions.admin`)
+   - `Service Account User` (`roles/iam.serviceAccountUser`)
+   - `Cloud Scheduler Admin` (`roles/cloudscheduler.admin`)
+   - `Firebase Rules Admin` (`roles/firebaserules.admin`)
+   - 필요하면 `Storage Admin` (`roles/storage.admin`)
+   - 간단히 시작하려면 `Firebase Admin`을 추가해도 되지만, 운영에서는 최소 권한을
+     권장합니다.
+3. 서비스 계정 → **키 → 키 추가 → JSON**으로 키를 만들고 JSON 파일을 내려받습니다.
+4. GitHub 저장소 → **Settings → Secrets and variables → Actions → New repository
+   secret**에서 이름을 `GCP_SA_KEY`로 하고, JSON 파일의 **내용 전체**를 붙여넣습니다.
+   가능하면 JSON을 한 줄로 압축해 붙여넣으세요. 파일 자체나 키를 저장소에
+   커밋하지 마세요.
+5. **최초 1회**는 Actions → **Deploy Firestore Rules**와 **Deploy Cloud Functions**를
+   각각 **Run workflow**로 실행합니다. 이후에는 관련 파일을 `main`에 푸시하면
+   자동 실행됩니다.
 
-   ```bash
-   npx firebase-tools login:ci
-   ```
+다른 Firebase 프로젝트를 사용한다면 저장소 변수 `FIREBASE_PROJECT_ID`를 설정하세요.
+기본값은 `study-room-d0c89`입니다. `GCP_SA_KEY`가 없으면 두 워크플로우는 배포를
+건너뜁니다.
 
-2. GitHub 저장소 → **Settings → Secrets and variables → Actions → New repository secret**에서 `FIREBASE_TOKEN` 이름으로 토큰을 저장합니다.
-
-3. **최초 1회**는 Actions → **Deploy Firestore Rules** → **Run workflow**를 실행해 현재 규칙을 배포합니다. 워크플로우 파일을 추가한 커밋만으로는 실행되지 않습니다.
-
-4. 이후 규칙 파일을 수정해 `main`에 푸시하면 자동으로 배포됩니다.
-
-다른 Firebase 프로젝트를 사용한다면 저장소 변수 `FIREBASE_PROJECT_ID`를 설정하세요. 기본값은 `study-room-d0c89`입니다.
-
-> `FIREBASE_TOKEN`은 Firebase 계정 권한을 가진 비밀값입니다. 저장소 Secret으로만 보관하고, 노출이 의심되면 `firebase login:ci`로 재발급해 교체하세요.
+> 서비스 계정 키는 장기 자격 증명입니다. GitHub Secret으로만 보관하고, 노출이
+> 의심되면 키를 즉시 삭제·재발급하세요. 가능하면 Workload Identity Federation
+> 또는 짧은 수명의 자격 증명으로 전환하는 것이 더 안전합니다.
 
 ### 4) 백그라운드 학습 알림 (Blaze 필요)
 
@@ -142,13 +155,18 @@ Cloud Functions와 Cloud Scheduler를 쓰려면 Firebase 프로젝트를 **Blaze
    기기 등록이 `Missing or insufficient permissions`로 실패합니다.
 4. 함수를 배포합니다.
 
+   GitHub Actions를 사용하려면 `GCP_SA_KEY` Secret을 등록한 뒤
+   Actions → **Deploy Cloud Functions** → **Run workflow**를 실행합니다.
+
+   로컬에서 직접 배포하려면 서비스 계정 JSON을 지정합니다.
+
    ```bash
+   export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
    cd functions
    npm ci
    npm run build
-   firebase login
-   firebase use study-room-d0c89
-   firebase deploy --only functions
+   cd ..
+   npx firebase-tools deploy --only functions --project study-room-d0c89
    ```
 
 5. `main`에 푸시해 Pages를 다시 배포한 뒤, 학생 화면의 **주간 목표 → 학습 알림**에서
@@ -166,7 +184,7 @@ Cloud Functions와 Cloud Scheduler를 쓰려면 Firebase 프로젝트를 **Blaze
 > 함께 맞춰야 합니다. 서비스 계정 키는 저장소에 넣지 마세요.
 >
 > `main`에 `functions/**` 또는 `firebase.json` 변경이 푸시되면
-> **Deploy Cloud Functions** 워크플로우가 실행됩니다. `FIREBASE_TOKEN` Secret이
+> **Deploy Cloud Functions** 워크플로우가 실행됩니다. `GCP_SA_KEY` Secret이
 > 없으면 배포를 건너뛰고, Secret이 있어도 Blaze 요금제가 아니면 배포가 실패합니다.
 
 ### 5) 호스트 도메인 확인
