@@ -6,6 +6,7 @@ import {
   todayKey,
   weeklyReport,
 } from '../lib/planner'
+import { weeklyGoalRows } from '../lib/goals'
 import { completedPoints, levelInfo, pointsForPlan } from '../lib/points'
 import type { UserProfile } from '../types'
 import type { View } from './AppShell'
@@ -115,6 +116,11 @@ export function ParentHome({
   const targetMinutes = todayPlans.reduce((sum, p) => sum + p.targetMinutes, 0)
   const points = levelInfo(completedPoints(planner.plans))
   const report = weeklyReport(planner.plans, planner.records, today)
+  const goalRows = weeklyGoalRows(
+    planner.subjects,
+    child?.weeklyGoals ?? {},
+    planner.records,
+  )
   const childName = child?.name ?? '자녀'
 
   return (
@@ -210,6 +216,52 @@ export function ParentHome({
           />
         </div>
       </section>
+
+      {goalRows.length > 0 && (
+        <section className={`${panelClass} mb-4 p-5`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-[15px] font-extrabold tracking-[-0.025em] text-[#3d3a55]">
+                주간 목표
+              </h2>
+              <p className="mt-1 text-xs text-[#8b88a3]">
+                자녀가 설정한 과목별 목표와 이번 주 기록이에요.
+              </p>
+            </div>
+            <span className="rounded-full bg-[#f1eeff] px-2.5 py-1 text-[11px] font-extrabold text-[#6a63c9]">
+              {goalRows.length}개 과목
+            </span>
+          </div>
+          <div className="mt-4 space-y-4">
+            {goalRows.map((row) => (
+              <div key={row.subjectId}>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="flex items-center gap-2 font-bold text-[#5f5c78]">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: row.color }}
+                    />
+                    {row.name}
+                  </span>
+                  <span className="text-[#8b88a3]">
+                    {formatDuration(row.studiedMs)} / {row.targetMinutes}분 ·{' '}
+                    <strong className="text-[#6f68e8]">{row.progress}%</strong>
+                  </span>
+                </div>
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#f1eef9]">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${row.progress}%`,
+                      backgroundColor: row.color,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard

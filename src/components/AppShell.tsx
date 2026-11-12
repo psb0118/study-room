@@ -9,6 +9,7 @@ export type View =
   | 'plans'
   | 'subjects'
   | 'records'
+  | 'goals'
   | 'stats'
   | 'schedule'
   | 'leaderboard'
@@ -20,6 +21,7 @@ const STUDENT_NAV: { id: View; icon: string; label: string }[] = [
   { id: 'plans', icon: '▣', label: '공부 계획' },
   { id: 'subjects', icon: '●', label: '과목 관리' },
   { id: 'records', icon: '▤', label: '공부 기록' },
+  { id: 'goals', icon: '◎', label: '주간 목표' },
   { id: 'stats', icon: '▥', label: '통계' },
   { id: 'schedule', icon: '▦', label: '시간표' },
   { id: 'leaderboard', icon: '★', label: '포인트 순위' },

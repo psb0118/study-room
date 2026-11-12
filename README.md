@@ -36,7 +36,9 @@
 
 ### 4) 데이터 관리와 오프라인
 
-- **데이터 내보내기** — 현재 계정(부모는 선택한 자녀)의 프로필·과목·계획·기록을 JSON 파일로 저장합니다. 네트워크를 다시 호출하지 않아 오프라인에서도 내보낼 수 있습니다.
+- **데이터 내보내기** — 현재 계정(부모는 선택한 자녀)의 프로필·과목·계획·기록을 JSON 또는 CSV로 저장합니다. 네트워크를 다시 호출하지 않아 오프라인에서도 내보낼 수 있습니다.
+- **주간 목표** — 과목별 주간 공부 시간 목표를 설정하고 이번 주 기록과 비교합니다. 부모 화면에서도 자녀의 목표 달성률을 볼 수 있습니다.
+- **학습 알림** — 브라우저 알림 권한을 허용하면 앱을 열어둔 동안 정한 시간에 공부 알림을 받습니다.
 - **계정 삭제** — 비밀번호 또는 Google 재인증과 확인 문구를 거친 뒤 프로필, 플래너 데이터, 가족 연결 코드, 순위표·주간 리그 항목을 정리하고 Auth 계정을 삭제합니다. 부모 계정 삭제 시 자녀의 학습 데이터는 유지됩니다.
 - **오프라인 지원** — Firestore 영구 캐시로 마지막 데이터를 읽고 변경을 대기열에 저장하며, 서비스 워커가 앱 셸과 해시된 JS/CSS를 캐시합니다. 오프라인 중에는 상단에 상태 안내가 표시되고, 연결이 돌아오면 저장 내용이 자동 동기화됩니다.
 
@@ -68,6 +70,8 @@ VITE_FIREBASE_PROJECT_ID=...
 VITE_FIREBASE_STORAGE_BUCKET=...
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
+# 선택: Firebase App Check reCAPTCHA v3 사이트 키
+VITE_RECAPTCHA_SITE_KEY=...
 ```
 
 ### 1) 로그인 활성화
@@ -77,7 +81,7 @@ Firebase 콘솔 → **Authentication → Sign-in method**에서 아래를 켭니
 - **Email/Password** — 학생·부모 이메일 계정 (필수)
 - **Google** — 간편 로그인 (선택)
 
-> 이메일 로그인을 켜지 않으면 `auth/operation-not-allowed` 오류가 납니다.
+> 이메일 로그인을 켜지 않으면 `auth/operation-not-allowed` 오류가 납니다. 관리자 계정은 Google 로그인만 허용됩니다.
 
 ### 2) Realtime Database 생성
 
@@ -97,7 +101,9 @@ firebase deploy --only database,firestore:rules
 - **Realtime DB**: 로그인한 사용자만 방 읽기/쓰기, 채팅 500자·획 점 수 제한
 - **Firestore**: 학생은 본인 데이터에 접근하고, 연결된 부모는 자녀의 프로필·계획·기록을 읽고 계획을 추가·삭제·완료 취소할 수 있습니다. 관리자 이메일은 전체 프로필을 읽고 다른 계정의 이용 상태 필드(`accountStatus`, `statusReason`)만 변경할 수 있습니다. 가족 코드와 공개 포인트 순위·주간 리그 규칙도 포함되며, 학생/연결된 부모는 순위표 항목을 삭제할 수 있습니다.
 
-> 플래너 데이터는 `studyUsers/{uid}/subjects|plans|records` 하위 컬렉션에 저장됩니다. 부모 연결과 포인트 순위를 사용하려면 이 저장소의 최신 `firebase/firestore.rules`를 반드시 배포해야 합니다. 기존 규칙만 배포된 상태에서는 `Missing or insufficient permissions`가 발생할 수 있습니다.
+> 플래너 데이터는 `studyUsers/{uid}/subjects|plans|records` 하위 컬렉션에 저장됩니다. 부모 연결, 관리자 기능, 오류 로그를 사용하려면 이 저장소의 최신 `firebase/firestore.rules`를 반드시 배포해야 합니다. 기존 규칙만 배포된 상태에서는 `Missing or insufficient permissions`가 발생할 수 있습니다.
+>
+> App Check, 오류 모니터링, Firestore 백업, 관리자 Google 전용 로그인 설정은 [보안·운영 문서](docs/security-and-operations.md)를 참고하세요.
 
 #### Firestore 규칙 자동 배포 (선택)
 
@@ -133,7 +139,8 @@ Auth 콘솔 → **Settings → Authorized domains** 에 배포 도메인 추가 
 - 사용자별 **이용 중 / 이용 정지** 상태를 전환할 수 있습니다. 정지할 때 사유를 입력하며, 사유는 관리자 목록과 정지된 사용자의 안내 화면에 표시됩니다. 정지된 계정은 학습 데이터에 접근하지 못합니다.
 - 관리자는 자기 자신의 상태를 정지할 수 없고, 프로필의 다른 내용이나 학습 데이터는 수정·삭제할 수 없습니다.
 - 관리자 판별은 `src/lib/admin.ts`와 `firebase/firestore.rules`의 `isAdmin()`에 함께 설정되어 있습니다. 이메일을 바꾸려면 두 곳을 같이 수정해야 합니다.
-- 관리자 사용자 목록을 읽으려면 최신 Firestore 규칙을 반드시 배포해야 합니다. 자동 배포 Secret이 없다면 Firebase 콘솔 → Firestore → Rules에서 `firebase/firestore.rules` 내용을 붙여넣고 게시하세요.
+- 관리자 화면은 Google 로그인 세션에서만 열립니다. 이메일/비밀번호 세션은 관리자 권한이 없습니다.
+- 관리자 사용자 목록과 오류 로그를 읽으려면 최신 Firestore 규칙을 반드시 배포해야 합니다. 자동 배포 Secret이 없다면 Firebase 콘솔 → Firestore → Rules에서 `firebase/firestore.rules` 내용을 붙여넣고 게시하세요.
 
 ## 구조
 
@@ -150,9 +157,15 @@ src/
     useLeaderboard.ts    전체/주간 상위 20명과 내 순위 구독
     useOnlineStatus.ts   브라우저 온라인/오프라인 상태
     useAdminUsers.ts     관리자 사용자 목록 조회·계정 상태 변경
+    useAdminErrors.ts    관리자 오류 로그 조회
+    useStudyReminder.ts  앱이 열린 동안 로컬 학습 알림 예약
   lib/
     accountStatus.ts     계정 이용 상태 정규화·라벨
-    admin.ts             관리자 이메일 판별
+    admin.ts             관리자 이메일·Google 로그인 판별
+    goals.ts             주간 목표 정규화·달성률
+    reminders.ts         다음 알림 시각 계산
+    csv.ts               CSV 직렬화·다운로드
+    errorLog.ts          관리자 전용 클라이언트 오류 로그
     pomodoro.ts          타이머 순수 로직 (상태 전이/잔여시간/진행률)
     streak.ts            스트릭/날짜 계산 순수 로직
     planner.ts           플래너 날짜/필터/통계/검증 순수 로직
@@ -167,7 +180,8 @@ src/
     AppShell             역할별 사이드바·모바일 하단 내비게이션
     Login / RoleSetup / Dashboard / Lobby / Room
     Family / Leaderboard / ParentHome / PointsCard
-    DataSettings / OfflineNotice
+    DataSettings / OfflineNotice / AppErrorBoundary
+    Goals / ErrorMonitor (Admin 내부)
     TimerPanel / Whiteboard / Chat / Members
     FocusTimer / Plans / Subjects / Records / Stats / Schedule
     ui                   공통 카드·모달·입력·탭·차트
@@ -186,10 +200,11 @@ firebase/
   - 참가자가 모두 나가면 15초 후 방 자동 삭제
 - **Firestore**: `studyUsers/{uid}` 프로필 + 하위 컬렉션
   - Firestore 영구 캐시를 사용해 온라인에서 본 데이터와 대기 중인 변경을 기기에 보관합니다. 서비스 워커는 앱 셸과 해시된 정적 자산을 캐시합니다.
-  - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended), `statusReason`(정지 사유)
+  - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended), `statusReason`(정지 사유), `weeklyGoals`(과목별 주간 목표), `reminderEnabled`, `reminderTime`
   - `subjects/{subjectId}` — 이름, 색상, 보관 여부
   - `plans/{planId}` — 과목, 제목, 날짜, 시간, 목표 분, 우선순위, 상태, `completedAt`(완료 시각), 메모
   - `records/{recordId}` — 과목, 연결 계획, 날짜 키, 시작/종료, 공부 시간, 출처(room/manual)
+  - `appErrors/{errorId}` — 관리자만 읽는 클라이언트 오류 로그 (메시지·스택·URL·사용자 uid)
   - `familyCodes/{code}` — 학생이 만든 6자리 연결 코드
   - `families/{studentUid}/parents/{parentUid}` — 부모 연결 문서
   - `leaderboard/{uid}` — 공개 이름·사진·포인트·레벨 요약
@@ -206,6 +221,8 @@ firebase/
 | `Firebase: No Database URL` | Realtime Database를 생성하고 `databaseURL` 확인 |
 | `Missing or insufficient permissions` (플래너) | `firebase deploy --only firestore:rules`로 최신 Firestore 규칙 배포 |
 | 관리자 화면에서 이용 정지·재개가 안 돼요 | 최신 `firebase/firestore.rules`를 게시했고, 정지 사유를 입력했는지 확인 |
+| 관리자 화면이 Google 로그인 안내만 보여요 | `soundpsb1@gmail.com`으로 Google 로그인했는지 확인 |
+| 오류 로그가 비어 있어요 | 관리자 Google 세션인지, 최신 Firestore 규칙이 게시됐는지 확인 |
 | 부모 연결 코드를 찾을 수 없어요 | 자녀가 코드를 만들었는지, 최신 Firestore 규칙이 배포됐는지 확인 |
 | 포인트 순위가 비어 있어요 | 계획을 완료한 뒤 순위표 동기화를 기다리고, 로그인/규칙 상태 확인 |
 | 주간 순위가 비어 있어요 | 최신 Firestore 규칙을 배포한 뒤, 이번 주 계획을 완료하고 동기화를 기다려 주세요 |

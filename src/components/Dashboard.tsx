@@ -307,6 +307,13 @@ export function Dashboard({
               </button>
               <button
                 type="button"
+                onClick={() => onNavigate('goals')}
+                className="flex items-center justify-between rounded-lg border border-[#f1eef9] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#5f5c78] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff]"
+              >
+                주간 목표 보기 <span className="text-[#b8b5c9]">→</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => onNavigate('schedule')}
                 className="flex items-center justify-between rounded-lg border border-[#f1eef9] bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#5f5c78] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff]"
               >

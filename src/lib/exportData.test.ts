@@ -22,6 +22,9 @@ const parent: UserProfile = {
   statusReason: '',
   statusUpdatedAt: 0,
   statusUpdatedBy: '',
+  weeklyGoals: {},
+  reminderEnabled: false,
+  reminderTime: '19:00',
   createdAt: 1,
   updatedAt: 2,
 }
@@ -41,6 +44,9 @@ const student: UserProfile = {
   statusReason: '',
   statusUpdatedAt: 0,
   statusUpdatedBy: '',
+  weeklyGoals: {},
+  reminderEnabled: false,
+  reminderTime: '19:00',
   createdAt: 3,
   updatedAt: 4,
 }

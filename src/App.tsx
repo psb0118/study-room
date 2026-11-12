@@ -4,6 +4,7 @@ import { AdminDashboard } from './components/Admin'
 import { AppShell, type View } from './components/AppShell'
 import { Dashboard } from './components/Dashboard'
 import { Family } from './components/Family'
+import { Goals } from './components/Goals'
 import { Leaderboard } from './components/Leaderboard'
 import { Lobby } from './components/Lobby'
 import { Login } from './components/Login'
@@ -16,10 +17,11 @@ import { Schedule } from './components/Schedule'
 import { Stats } from './components/Stats'
 import { Subjects } from './components/Subjects'
 import { useAuth } from './hooks/useAuth'
-import { ADMIN_EMAIL, isAdminEmail } from './lib/admin'
+import { ADMIN_EMAIL, isAdminEmail, isGoogleAccount } from './lib/admin'
 import { usePlanner } from './hooks/usePlanner'
 import { useChildProfile, useProfile, type ProfileApi } from './hooks/useProfile'
 import { usePointsSync } from './hooks/usePointsSync'
+import { useStudyReminder } from './hooks/useStudyReminder'
 import type { UserProfile } from './types'
 
 export default function App() {
@@ -78,6 +80,9 @@ function Workspace({
   }
 
   if (isAdminEmail(user.email ?? profile.email)) {
+    if (!isGoogleAccount(user)) {
+      return <AdminGoogleOnly onLogout={onLogout} />
+    }
     return <AdminWorkspace profile={profile} onLogout={onLogout} />
   }
 
@@ -153,6 +158,7 @@ function StudentWorkspace({
   const planner = usePlanner(user.uid)
   const [view, setView] = useState<View>('home')
   const [code, setCode] = useState<string | null>(null)
+  useStudyReminder(profile)
   usePointsSync(user.uid, profile, planner.plans, !planner.loading)
 
   if (code) {
@@ -169,6 +175,14 @@ function StudentWorkspace({
         return <Subjects planner={planner} />
       case 'records':
         return <Records planner={planner} onNavigate={setView} />
+      case 'goals':
+        return (
+          <Goals
+            profile={profile}
+            profileApi={profileApi}
+            planner={planner}
+          />
+        )
       case 'stats':
         return <Stats planner={planner} />
       case 'schedule':
@@ -383,6 +397,35 @@ function PlannerError({ message }: { message: string | null }) {
   return (
     <div className="mb-4 rounded-xl border border-[#f6d6dd] bg-[#ffeff3] px-4 py-3 text-sm text-[#d96a7c]">
       {message}
+    </div>
+  )
+}
+
+function AdminGoogleOnly({ onLogout }: { onLogout: () => void }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#faf8ff] px-4">
+      <div className="surface w-full max-w-md p-7 text-center">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#f1eeff] text-xl">
+          G
+        </div>
+        <h1 className="mt-4 text-lg font-extrabold text-[#3d3a55]">
+          관리자 로그인은 Google 계정만 지원해요
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-[#8b88a3]">
+          보안을 위해 관리자 계정은 Google 로그인 세션에서만 관리자 화면을
+          열 수 있어요. 로그아웃한 뒤 Google로 다시 로그인해 주세요.
+        </p>
+        <p className="mt-3 rounded-lg bg-[#f7f4ff] px-3 py-2 text-xs leading-relaxed text-[#706d8a]">
+          관리자 이메일: {ADMIN_EMAIL}
+        </p>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="btn btn-primary mt-5 w-full"
+        >
+          로그아웃하고 Google로 로그인
+        </button>
+      </div>
     </div>
   )
 }

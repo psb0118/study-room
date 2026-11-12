@@ -2,6 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
+import { logAppError } from './lib/errorLog'
 
 /**
  * 프로덕션 빌드에서 앱 셸을 서비스 워커에 캐시한다.
@@ -41,8 +43,17 @@ function registerAppShell() {
 
 registerAppShell()
 
+window.addEventListener('error', (event) => {
+  logAppError(event.error ?? event.message, 'window.error')
+})
+window.addEventListener('unhandledrejection', (event) => {
+  logAppError(event.reason, 'unhandledrejection')
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </StrictMode>,
 )

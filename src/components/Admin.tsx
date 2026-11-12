@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useAdminErrors } from '../hooks/useAdminErrors'
 import { useAdminUsers } from '../hooks/useAdminUsers'
 import {
   ACCOUNT_STATUS_LABEL,
   MAX_STATUS_REASON_LENGTH,
 } from '../lib/accountStatus'
 import { ADMIN_EMAIL, isAdminEmail } from '../lib/admin'
+import { csvFileName, downloadText, toCsv } from '../lib/csv'
 import type { AccountStatus, UserProfile } from '../types'
 import { Avatar } from './Avatar'
 import { PageHeader, StatCard, panelClass } from './ui'
@@ -64,6 +66,22 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
     { id: 'suspended', label: '이용 정지', count: suspendedCount },
   ]
 
+  const exportUsers = () => {
+    const rows: (string | number)[][] = [
+      ['이름', '이메일', '역할', '상태', '정지 사유', '가입일', '연결 자녀 수'],
+      ...users.map((user) => [
+        user.nickname || user.name,
+        user.email,
+        roleLabel(user),
+        ACCOUNT_STATUS_LABEL[user.accountStatus],
+        user.statusReason,
+        user.createdAt ? new Date(user.createdAt).toISOString() : '',
+        user.childUids.length,
+      ]),
+    ]
+    downloadText(toCsv(rows), csvFileName('users'))
+  }
+
   const closeSuspend = () => {
     if (busyUid) return
     setSuspendTarget(null)
@@ -96,6 +114,16 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
         eyebrow="ADMIN CONSOLE"
         title="관리자"
         description={`${ADMIN_EMAIL} 계정으로 로그인했어요. 전체 사용자와 가족 연결 현황을 확인하고 계정 이용 상태를 관리할 수 있어요.`}
+        action={
+          <button
+            type="button"
+            onClick={exportUsers}
+            disabled={loading || users.length === 0}
+            className="rounded-xl border border-[#e6e1f5] bg-white px-3 py-2 text-xs font-extrabold text-[#77738f] transition hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            사용자 CSV
+          </button>
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -273,6 +301,8 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
         )}
       </section>
 
+      <ErrorMonitor />
+
       {suspendTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d2a45]/35 p-4">
           <div
@@ -353,5 +383,82 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
         </div>
       )}
     </div>
+  )
+}
+
+function ErrorMonitor() {
+  const { errors, loading, error } = useAdminErrors()
+  return (
+    <section className={`${panelClass} mt-4 p-6`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-extrabold tracking-[0.08em] text-[#7c74f0] uppercase">
+            ERROR MONITOR
+          </p>
+          <h2 className="mt-1 text-lg font-extrabold text-[#3d3a55]">
+            최근 클라이언트 오류
+          </h2>
+          <p className="mt-1 text-sm text-[#8b88a3]">
+            로그인한 사용자의 화면 오류를 최근 30건까지 확인합니다. 스택에는
+            개인정보가 포함될 수 있으니 관리자만 열람하세요.
+          </p>
+        </div>
+        <span className="rounded-full bg-[#f1eeff] px-2.5 py-1 text-[11px] font-extrabold text-[#6f68e8]">
+          {loading ? '불러오는 중…' : `${errors.length}건`}
+        </span>
+      </div>
+
+      {error ? (
+        <p className="mt-4 rounded-xl border border-[#f6d6dd] bg-[#ffeff3] px-4 py-3 text-sm text-[#d96a7c]">
+          오류 로그를 불러오지 못했어요. {error}
+        </p>
+      ) : loading ? (
+        <p className="mt-4 rounded-xl bg-[#faf9ff] px-4 py-3 text-sm text-[#8b88a3]">
+          오류 로그를 확인하는 중…
+        </p>
+      ) : errors.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-[#d6d1ff] bg-[#faf9ff] px-4 py-4 text-sm text-[#8b88a3]">
+          최근에 기록된 클라이언트 오류가 없어요.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {errors.map((item) => (
+            <li
+              key={item.id}
+              className="rounded-xl border border-[#f1eef9] bg-[#faf9ff] px-4 py-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <strong className="text-sm font-extrabold text-[#a84f60]">
+                  {item.message || '메시지 없음'}
+                </strong>
+                <span className="text-[11px] text-[#a8a5bb]">
+                  {item.createdAt
+                    ? new Intl.DateTimeFormat('ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }).format(new Date(item.createdAt))
+                    : '시간 정보 없음'}
+                </span>
+              </div>
+              <p className="mt-1 break-all text-[11px] text-[#8b88a3]">
+                {item.context || 'app'} · {item.url || 'URL 없음'}
+              </p>
+              {item.stack && (
+                <details className="mt-2 text-[11px] text-[#8b88a3]">
+                  <summary className="cursor-pointer font-bold text-[#6f68e8]">
+                    스택 보기
+                  </summary>
+                  <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-white p-2 text-[10px] leading-relaxed">
+                    {item.stack}
+                  </pre>
+                </details>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

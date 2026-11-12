@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore'
 import { fs } from '../firebase'
 import { normalizeAccountStatus, normalizeStatusReason } from './accountStatus'
+import { normalizeWeeklyGoals } from './goals'
 import type { ProfileRole, UserProfile } from '../types'
 import { SUBJECT_COLORS } from './planner'
 import { STUDY_USERS } from './stats'
@@ -39,6 +40,9 @@ export function defaultProfile(user: User): UserProfile {
     statusReason: '',
     statusUpdatedAt: 0,
     statusUpdatedBy: '',
+    weeklyGoals: {},
+    reminderEnabled: false,
+    reminderTime: '19:00',
     createdAt: now,
     updatedAt: now,
   }
@@ -81,6 +85,13 @@ export function normalizeProfile(
     statusReason: normalizeStatusReason(data.statusReason),
     statusUpdatedAt: Number(data.statusUpdatedAt) || 0,
     statusUpdatedBy: String(data.statusUpdatedBy ?? ''),
+    weeklyGoals: normalizeWeeklyGoals(data.weeklyGoals),
+    reminderEnabled: data.reminderEnabled === true,
+    reminderTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(
+      String(data.reminderTime ?? ''),
+    )
+      ? String(data.reminderTime)
+      : '19:00',
     createdAt: Number(data.createdAt) || 0,
     updatedAt: Number(data.updatedAt) || 0,
   }

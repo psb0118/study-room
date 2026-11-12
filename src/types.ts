@@ -136,6 +136,11 @@ export interface UserProfile {
   statusReason: string
   statusUpdatedAt: number
   statusUpdatedBy: string
+  /** 과목 id별 주간 목표 분량 */
+  weeklyGoals: Record<string, number>
+  /** 앱을 열어둔 동안 보낼 학습 알림 */
+  reminderEnabled: boolean
+  reminderTime: string
   createdAt: number
   updatedAt: number
 }

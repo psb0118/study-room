@@ -66,10 +66,18 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
     status: 'all',
   })
   const [modal, setModal] = useState<'new' | StudyPlan | null>(null)
+  const [query, setQuery] = useState('')
   const isParent = role === 'parent'
 
   const activeSubjects = planner.subjects.filter((s) => !s.archived)
-  const visible = filterPlans(planner.plans, filters)
+  const normalizedQuery = query.trim().toLowerCase()
+  const visible = filterPlans(planner.plans, filters).filter((plan) =>
+    normalizedQuery
+      ? [plan.title, plan.description, plan.memo].some((value) =>
+          value.toLowerCase().includes(normalizedQuery),
+        )
+      : true,
+  )
 
   const addTemplate = async (template: (typeof QUICK_TEMPLATES)[number]) => {
     const subject =
@@ -171,6 +179,15 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
       <section
         className={`${panelClass} mb-4 flex flex-wrap items-end gap-3 p-4`}
       >
+        <Field label="검색" className="min-w-[180px] flex-1 sm:flex-none">
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="제목·내용·메모 검색"
+            className={inputClass}
+          />
+        </Field>
         <Field label="기간" className="min-w-[120px] flex-1 sm:flex-none">
           <select
             value={filters.period}
@@ -222,9 +239,10 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
         </Field>
         <button
           type="button"
-          onClick={() =>
+          onClick={() => {
+            setQuery('')
             setFilters({ period: 'all', subjectId: 'all', status: 'all' })
-          }
+          }}
           className={ghostButton}
         >
           초기화

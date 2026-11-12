@@ -13,6 +13,8 @@ import {
 } from 'firebase/firestore'
 import { fs } from '../firebase'
 import { firestoreMessage } from '../lib/errors'
+import { isTime } from '../lib/planner'
+import { normalizeWeeklyGoals } from '../lib/goals'
 import {
   createUniqueFamilyCode,
   defaultProfile,
@@ -30,6 +32,11 @@ export interface ProfileApi {
   busy: boolean
   chooseRole: (role: Role) => Promise<boolean>
   updateNickname: (nickname: string) => Promise<boolean>
+  savePreferences: (patch: {
+    weeklyGoals?: Record<string, number>
+    reminderEnabled?: boolean
+    reminderTime?: string
+  }) => Promise<boolean>
   linkChild: (code: string) => Promise<boolean>
   unlinkChild: (childUid?: string) => Promise<boolean>
   regenerateFamilyCode: () => Promise<boolean>
@@ -155,6 +162,32 @@ export function useProfile(user: User): ProfileApi {
     })
   }
 
+  const savePreferences = async (patch: {
+    weeklyGoals?: Record<string, number>
+    reminderEnabled?: boolean
+    reminderTime?: string
+  }): Promise<boolean> => {
+    if (!profile) {
+      setActionError('프로필을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.')
+      return false
+    }
+    if (patch.reminderTime && !isTime(patch.reminderTime)) {
+      setActionError('올바른 알림 시간을 선택해 주세요.')
+      return false
+    }
+    return run(async () => {
+      const payload: Record<string, unknown> = { updatedAt: Date.now() }
+      if (patch.weeklyGoals) {
+        payload.weeklyGoals = normalizeWeeklyGoals(patch.weeklyGoals)
+      }
+      if (typeof patch.reminderEnabled === 'boolean') {
+        payload.reminderEnabled = patch.reminderEnabled
+      }
+      if (patch.reminderTime) payload.reminderTime = patch.reminderTime
+      await updateDoc(userRef, payload)
+    })
+  }
+
   const linkChild = async (rawCode: string): Promise<boolean> => {
     if (!profile) {
       setActionError('프로필을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.')
@@ -251,6 +284,7 @@ export function useProfile(user: User): ProfileApi {
     busy,
     chooseRole,
     updateNickname,
+    savePreferences,
     linkChild,
     unlinkChild,
     regenerateFamilyCode,

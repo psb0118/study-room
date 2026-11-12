@@ -30,11 +30,27 @@ interface RecordsProps {
 
 export function Records({ planner, onNavigate }: RecordsProps) {
   const [period, setPeriod] = useState<Period>('week')
+  const [subjectId, setSubjectId] = useState('all')
+  const [query, setQuery] = useState('')
   const [modal, setModal] = useState(false)
 
-  const records = recordsInPeriod(planner.records, period).sort(
-    (a, b) => b.startedAt - a.startedAt,
-  )
+  const normalizedQuery = query.trim().toLowerCase()
+  const records = recordsInPeriod(planner.records, period)
+    .filter(
+      (record) =>
+        (subjectId === 'all' || record.subjectId === subjectId) &&
+        (!normalizedQuery ||
+          [
+            record.memo,
+            record.dateKey,
+            subjectMeta(record.subjectId, planner.subjects).name,
+            planner.plans.find((plan) => plan.id === record.planId)?.title ?? '',
+          ]
+            .join(' ')
+            .toLowerCase()
+            .includes(normalizedQuery)),
+    )
+    .sort((a, b) => b.startedAt - a.startedAt)
 
   const openModal = () => {
     if (!planner.subjects.some((s) => !s.archived)) {
@@ -57,9 +73,43 @@ export function Records({ planner, onNavigate }: RecordsProps) {
         }
       />
 
-      <section className={`${panelClass} mb-4 flex flex-wrap items-center justify-between gap-3 p-4`}>
+      <section className={`${panelClass} mb-4 flex flex-wrap items-end gap-3 p-4`}>
         <PeriodTabs value={period} onChange={setPeriod} />
-        <span className="text-xs text-[#a8a5bb]">{records.length}개의 기록</span>
+        <Field label="과목" className="min-w-[130px] flex-1 sm:flex-none">
+          <select
+            value={subjectId}
+            onChange={(event) => setSubjectId(event.target.value)}
+            className={inputClass}
+          >
+            <option value="all">모든 과목</option>
+            {planner.subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>
+                {subject.name}
+                {subject.archived ? ' (보관됨)' : ''}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="검색" className="min-w-[180px] flex-1 sm:flex-none">
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="메모·과목 검색"
+            className={inputClass}
+          />
+        </Field>
+        <button
+          type="button"
+          onClick={() => {
+            setSubjectId('all')
+            setQuery('')
+          }}
+          className={ghostButton}
+        >
+          초기화
+        </button>
+        <span className="ml-auto text-xs text-[#a8a5bb]">{records.length}개의 기록</span>
       </section>
 
       {records.length > 0 ? (

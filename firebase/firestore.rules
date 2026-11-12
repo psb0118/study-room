@@ -42,7 +42,8 @@ service cloud.firestore {
     // 앱 관리자 계정. 화면과 src/lib/admin.ts의 ADMIN_EMAIL을 함께 유지한다.
     function isAdmin() {
       return signedIn()
-        && request.auth.token.email == 'soundpsb1@gmail.com';
+        && request.auth.token.email == 'soundpsb1@gmail.com'
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
 
     function canReadStudentData(uid) {
@@ -127,6 +128,24 @@ service cloud.firestore {
           && (isSelf(studentUid) || isSelf(parentUid));
         allow update: if false;
       }
+    }
+
+    // 클라이언트 오류 로그. 로그인한 사용자가 만들고 관리자만 읽는다.
+    match /appErrors/{errorId} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 1000
+        && request.resource.data.stack is string
+        && request.resource.data.stack.size() <= 8000
+        && request.resource.data.context is string
+        && request.resource.data.context.size() <= 100
+        && request.resource.data.url is string
+        && request.resource.data.url.size() <= 500
+        && request.resource.data.userAgent is string
+        && request.resource.data.userAgent.size() <= 300
+        && request.resource.data.createdAt is number;
+      allow read, delete: if isAdmin();
     }
 
     // 공개 순위표에는 이름/사진/포인트/레벨만 저장한다.

@@ -11,6 +11,10 @@
      규칙 파일: firebase/firestore.rules, firebase/database.rules.json
 ========================================================= */
 import { initializeApp } from 'firebase/app'
+import {
+  initializeAppCheck,
+  ReCaptchaV3Provider,
+} from 'firebase/app-check'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
 import {
@@ -50,6 +54,22 @@ const firebaseConfig = {
 export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId)
 
 export const app = initializeApp(firebaseConfig)
+
+// App Check는 사이트 키가 설정된 경우에만 활성화한다. 콘솔에서
+// Firestore/Storage/RTDB의 App Check 적용(Enforcement)을 켜기 전에
+// 먼저 토큰이 정상 발급되는지 확인해야 한다.
+const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY?.trim()
+if (appCheckSiteKey) {
+  try {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(appCheckSiteKey),
+      isTokenAutoRefreshEnabled: true,
+    })
+  } catch (e) {
+    console.warn('[firebase] App Check를 초기화하지 못했습니다.', e)
+  }
+}
+
 export const auth = getAuth(app)
 export const db = getDatabase(app)
 

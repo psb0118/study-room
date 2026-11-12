@@ -4,6 +4,7 @@ import type { PlannerApi } from '../hooks/usePlanner'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { deleteAccount } from '../lib/account'
 import { authMessage } from '../lib/errors'
+import { csvFileName, downloadText, toCsv } from '../lib/csv'
 import { buildExportBundle, exportFileName } from '../lib/exportData'
 import type { UserProfile } from '../types'
 import {
@@ -50,6 +51,53 @@ export function DataSettings({
     (provider) => provider.providerId === 'google.com',
   )
   const canDelete = hasPassword || hasGoogle
+
+  const exportCsv = () => {
+    if (exportLoading) return
+    setExportNotice(null)
+    setExportError(null)
+    try {
+      const rows: (string | number)[][] = [
+        ['구분', '날짜', '과목', '제목', '상태', '목표(분)', '시간', '메모'],
+      ]
+      for (const plan of targetPlanner?.plans ?? []) {
+        const subject = targetPlanner?.subjects.find(
+          (item) => item.id === plan.subjectId,
+        )
+        rows.push([
+          '계획',
+          plan.plannedDate,
+          subject?.name ?? '과목 없음',
+          plan.title,
+          plan.status,
+          plan.targetMinutes,
+          plan.startTime || '',
+          plan.memo,
+        ])
+      }
+      for (const record of targetPlanner?.records ?? []) {
+        const subject = targetPlanner?.subjects.find(
+          (item) => item.id === record.subjectId,
+        )
+        rows.push([
+          '기록',
+          record.dateKey,
+          subject?.name ?? '과목 없음',
+          '',
+          record.source === 'room' ? '스터디 룸' : '직접 기록',
+          Math.round(record.durationMs / 60_000),
+          '',
+          record.memo,
+        ])
+      }
+      downloadText(toCsv(rows), csvFileName(targetName))
+      setExportNotice(`${targetName}님의 계획·기록을 CSV로 저장했어요.`)
+    } catch (e) {
+      setExportError(
+        e instanceof Error ? e.message : 'CSV를 내보내지 못했어요.',
+      )
+    }
+  }
 
   const exportData = () => {
     if (exportLoading) return
@@ -175,6 +223,14 @@ export function DataSettings({
               className={`${primaryButton} mt-4 w-full`}
             >
               {exportLoading ? '데이터 불러오는 중…' : 'JSON으로 내보내기'}
+            </button>
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={exportLoading}
+              className={`${ghostButton} mt-2 w-full`}
+            >
+              CSV로 내보내기
             </button>
             {exportNotice && (
               <p className="mt-2 text-[11px] leading-relaxed text-[#3f9f7f]">
