@@ -24,12 +24,18 @@ service cloud.firestore {
         );
     }
 
+    // 앱 관리자 계정. 화면과 src/lib/admin.ts의 ADMIN_EMAIL을 함께 유지한다.
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email == 'soundpsb1@gmail.com';
+    }
+
     function canReadStudentData(uid) {
       return isSelf(uid) || isParentOf(uid);
     }
 
     match /studyUsers/{uid} {
-      allow read: if canReadStudentData(uid);
+      allow read: if canReadStudentData(uid) || isAdmin();
       allow write: if isSelf(uid);
 
       // planner: subjects / plans / records

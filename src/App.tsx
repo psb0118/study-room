@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { User } from 'firebase/auth'
+import { AdminDashboard } from './components/Admin'
 import { AppShell, type View } from './components/AppShell'
 import { Dashboard } from './components/Dashboard'
 import { Family } from './components/Family'
@@ -15,6 +16,7 @@ import { Schedule } from './components/Schedule'
 import { Stats } from './components/Stats'
 import { Subjects } from './components/Subjects'
 import { useAuth } from './hooks/useAuth'
+import { isAdminEmail } from './lib/admin'
 import { usePlanner } from './hooks/usePlanner'
 import { useChildProfile, useProfile, type ProfileApi } from './hooks/useProfile'
 import { usePointsSync } from './hooks/usePointsSync'
@@ -75,6 +77,10 @@ function Workspace({
     return <FullScreenLoading label="프로필을 준비하는 중…" />
   }
 
+  if (isAdminEmail(user.email ?? profile.email)) {
+    return <AdminWorkspace profile={profile} onLogout={onLogout} />
+  }
+
   if (!profile.role) {
     return (
       <RoleSetup
@@ -105,6 +111,27 @@ function Workspace({
       profileApi={profileApi}
       onLogout={onLogout}
     />
+  )
+}
+
+function AdminWorkspace({
+  profile,
+  onLogout,
+}: {
+  profile: UserProfile
+  onLogout: () => void
+}) {
+  return (
+    <AppShell
+      name={profile.name}
+      photo={profile.photo || undefined}
+      role="admin"
+      view="home"
+      onNavigate={() => {}}
+      onLogout={onLogout}
+    >
+      <AdminDashboard admin={profile} />
+    </AppShell>
   )
 }
 

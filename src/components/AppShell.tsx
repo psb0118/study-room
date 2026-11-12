@@ -35,8 +35,13 @@ const PARENT_NAV: { id: View; icon: string; label: string }[] = [
   { id: 'family', icon: '♧', label: '자녀 연결' },
 ]
 
+const ADMIN_NAV: { id: View; icon: string; label: string }[] = [
+  { id: 'home', icon: '⚙', label: '관리자' },
+]
+
 const STUDENT_MOBILE = ['home', 'plans', 'rooms', 'leaderboard', 'family']
 const PARENT_MOBILE = ['home', 'plans', 'stats', 'leaderboard', 'family']
+const ADMIN_MOBILE = ['home']
 
 interface AppShellProps {
   name: string
@@ -57,10 +62,21 @@ export function AppShell({
   onLogout,
   children,
 }: AppShellProps) {
-  const nav = role === 'parent' ? PARENT_NAV : STUDENT_NAV
-  const mobileIds = role === 'parent' ? PARENT_MOBILE : STUDENT_MOBILE
+  const nav =
+    role === 'parent' ? PARENT_NAV : role === 'admin' ? ADMIN_NAV : STUDENT_NAV
+  const mobileIds =
+    role === 'parent'
+      ? PARENT_MOBILE
+      : role === 'admin'
+        ? ADMIN_MOBILE
+        : STUDENT_MOBILE
   const mobileNav = nav.filter((item) => mobileIds.includes(item.id))
-  const roleLabel = role === 'parent' ? '부모 관리' : '학생 플래너'
+  const roleLabel =
+    role === 'parent'
+      ? '부모 관리'
+      : role === 'admin'
+        ? '관리자'
+        : '학생 플래너'
 
   return (
     <div className="min-h-screen bg-transparent lg:flex">
@@ -127,7 +143,9 @@ export function AppShell({
           </strong>
           {role === 'parent'
             ? '자녀의 계획과 포인트가 Firebase에 동기화됩니다.'
-            : '계획과 기록은 로그인한 계정에 동기화됩니다.'}
+            : role === 'admin'
+              ? '관리자 화면은 읽기 전용입니다.'
+              : '계획과 기록은 로그인한 계정에 동기화됩니다.'}
         </div>
       </aside>
 
@@ -160,7 +178,11 @@ export function AppShell({
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[#ece8f7] bg-white/95 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(61,58,85,0.05)] backdrop-blur-xl lg:hidden">
+      <nav
+        className={`fixed inset-x-0 bottom-0 z-30 grid border-t border-[#ece8f7] bg-white/95 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(61,58,85,0.05)] backdrop-blur-xl lg:hidden ${
+          role === 'admin' ? 'grid-cols-1' : 'grid-cols-5'
+        }`}
+      >
         {mobileNav.map((item) => (
           <button
             key={item.id}

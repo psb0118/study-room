@@ -108,7 +108,7 @@ export interface PlanInput {
 
 /* ── 계정 · 가족 · 포인트 ───────────────────────────────── */
 
-export type Role = 'student' | 'parent'
+export type Role = 'student' | 'parent' | 'admin'
 
 export type ProfileRole = Role | ''
 

@@ -95,7 +95,7 @@ firebase deploy --only database,firestore:rules
 규칙 파일: `firebase/database.rules.json`, `firebase/firestore.rules`
 
 - **Realtime DB**: 로그인한 사용자만 방 읽기/쓰기, 채팅 500자·획 점 수 제한
-- **Firestore**: 학생은 본인 데이터에 접근하고, 연결된 부모는 자녀의 프로필·계획·기록을 읽고 계획을 추가·삭제·완료 취소할 수 있습니다. 가족 코드와 공개 포인트 순위·주간 리그 규칙도 포함되며, 학생/연결된 부모는 순위표 항목을 삭제할 수 있습니다.
+- **Firestore**: 학생은 본인 데이터에 접근하고, 연결된 부모는 자녀의 프로필·계획·기록을 읽고 계획을 추가·삭제·완료 취소할 수 있습니다. 관리자 이메일은 읽기 전용 사용자 목록을 위해 전체 프로필을 읽을 수 있습니다. 가족 코드와 공개 포인트 순위·주간 리그 규칙도 포함되며, 학생/연결된 부모는 순위표 항목을 삭제할 수 있습니다.
 
 > 플래너 데이터는 `studyUsers/{uid}/subjects|plans|records` 하위 컬렉션에 저장됩니다. 부모 연결과 포인트 순위를 사용하려면 이 저장소의 최신 `firebase/firestore.rules`를 반드시 배포해야 합니다. 기존 규칙만 배포된 상태에서는 `Missing or insufficient permissions`가 발생할 수 있습니다.
 
@@ -123,6 +123,16 @@ firebase deploy --only database,firestore:rules
 
 Auth 콘솔 → **Settings → Authorized domains** 에 배포 도메인 추가 (로컬호스트는 기본 포함).
 
+## 관리자 계정
+
+관리자 이메일은 **`soundpsb1@gmail.com`** 입니다.
+
+- 이 이메일로 로그인하면 학생·부모 화면 대신 읽기 전용 관리자 화면이 열립니다.
+- 전체 사용자, 학생·부모 수, 부모 계정에 연결된 자녀 수를 확인할 수 있습니다.
+- 관리자 화면은 사용자 데이터를 수정하거나 삭제하지 않습니다.
+- 관리자 판별은 `src/lib/admin.ts`와 `firebase/firestore.rules`의 `isAdmin()`에 함께 설정되어 있습니다. 이메일을 바꾸려면 두 곳을 같이 수정해야 합니다.
+- 관리자 사용자 목록을 읽으려면 최신 Firestore 규칙을 반드시 배포해야 합니다. 자동 배포 Secret이 없다면 Firebase 콘솔 → Firestore → Rules에서 `firebase/firestore.rules` 내용을 붙여넣고 게시하세요.
+
 ## 구조
 
 ```
@@ -137,7 +147,9 @@ src/
     usePointsSync.ts     완료 계획에서 포인트를 계산해 순위표에 동기화
     useLeaderboard.ts    전체/주간 상위 20명과 내 순위 구독
     useOnlineStatus.ts   브라우저 온라인/오프라인 상태
+    useAdminUsers.ts     관리자 사용자 목록 실시간 조회
   lib/
+    admin.ts             관리자 이메일 판별
     pomodoro.ts          타이머 순수 로직 (상태 전이/잔여시간/진행률)
     streak.ts            스트릭/날짜 계산 순수 로직
     planner.ts           플래너 날짜/필터/통계/검증 순수 로직

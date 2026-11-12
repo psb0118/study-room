@@ -120,6 +120,10 @@ export function useProfile(user: User): ProfileApi {
       setActionError('이미 역할이 선택되어 있어요.')
       return false
     }
+    if (role !== 'student' && role !== 'parent') {
+      setActionError('지원하지 않는 역할이에요.')
+      return false
+    }
     return run(async () => {
       const now = Date.now()
       if (role === 'parent') {
