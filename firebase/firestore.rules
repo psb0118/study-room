@@ -99,6 +99,13 @@ service cloud.firestore {
         allow read: if isSelf(uid);
         allow write: if isSelf(uid) && isAccountActive();
       }
+
+      // 일정 알림 발송 기록. 서버(Admin SDK)만 만들고 수정하며,
+      // 본인은 계정 정리를 위해 읽고 삭제할 수 있다.
+      match /planReminderDeliveries/{deliveryId} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if false;
+      }
     }
 
     // 학생이 만든 6자리 연결 코드. 로그인한 사용자만 코드로 학생을 찾을 수 있다.

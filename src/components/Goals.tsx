@@ -7,11 +7,15 @@ import {
 } from '../lib/goals'
 import { formatDuration } from '../lib/planner'
 import {
+  PLAN_REMINDER_OFFSETS,
+  PLAN_REMINDER_OFFSET_LABELS,
+} from '../lib/planReminder'
+import {
   isPushSupported,
   registerPushToken,
   removePushToken,
 } from '../lib/push'
-import type { UserProfile } from '../types'
+import type { PlanReminderOffset, UserProfile } from '../types'
 import {
   PageHeader,
   ghostButton,
@@ -201,6 +205,7 @@ export function Goals({
       )}
 
       <ReminderSettings profile={profile} profileApi={profileApi} />
+      <PlanReminderSettings profile={profile} profileApi={profileApi} />
     </div>
   )
 }
@@ -273,6 +278,7 @@ function ReminderSettings({
     const ok = await profileApi.savePreferences({
       reminderEnabled: false,
       pushEnabled: false,
+      planReminderEnabled: false,
     })
     setBusy(false)
     if (ok) {
@@ -413,6 +419,194 @@ function ReminderSettings({
         <p className="mt-3 text-xs leading-relaxed text-[#d96a7c]">
           브라우저에서 이 사이트의 알림이 차단되어 있어요. 주소창의 사이트
           설정에서 알림을 허용해 주세요.
+        </p>
+      )}
+      {error && (
+        <p className="mt-3 rounded-xl bg-[#ffeff3] px-3.5 py-2.5 text-sm text-[#d96a7c]">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="mt-3 rounded-xl bg-[#eafaf1] px-3.5 py-2.5 text-sm text-[#3d9b6a]">
+          {notice}
+        </p>
+      )}
+      {profileApi.actionError && (
+        <p className="mt-3 rounded-xl bg-[#ffeff3] px-3.5 py-2.5 text-sm text-[#d96a7c]">
+          {profileApi.actionError}
+        </p>
+      )}
+    </section>
+  )
+}
+
+function PlanReminderSettings({
+  profile,
+  profileApi,
+}: {
+  profile: UserProfile
+  profileApi: ProfileApi
+}) {
+  const [supported, setSupported] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const enabled = profile.planReminderEnabled
+  const offset = profile.planReminderOffsetMinutes
+  const timezone =
+    Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Seoul'
+
+  useEffect(() => {
+    void isPushSupported().then(setSupported)
+  }, [])
+
+  const enable = async () => {
+    setError(null)
+    setNotice(null)
+    if (!supported) {
+      setError('이 브라우저에서는 백그라운드 알림을 지원하지 않아요.')
+      return
+    }
+
+    setBusy(true)
+    let registeredHere = false
+    try {
+      if (!profile.pushEnabled) {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') {
+          setError(
+            '브라우저 알림 권한이 필요해요. 주소창의 알림 설정을 확인해 주세요.',
+          )
+          return
+        }
+        const registered = await registerPushToken(profile.uid)
+        if (!registered.ok) {
+          setError(registered.error ?? '기기 등록에 실패했어요.')
+          return
+        }
+        registeredHere = true
+      }
+
+      const ok = await profileApi.savePreferences({
+        planReminderEnabled: true,
+        planReminderOffsetMinutes: offset,
+        reminderTimezone: timezone,
+        ...(registeredHere ? { pushEnabled: true } : {}),
+      })
+      if (!ok) {
+        if (registeredHere) await removePushToken(profile.uid)
+        return
+      }
+      setNotice('공부 일정 시작 알림을 켰어요.')
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : '알림 설정 중 오류가 발생했어요.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const disable = async () => {
+    setError(null)
+    setNotice(null)
+    setBusy(true)
+    const ok = await profileApi.savePreferences({ planReminderEnabled: false })
+    setBusy(false)
+    if (ok) setNotice('공부 일정 시작 알림을 껐어요.')
+  }
+
+  const updateOffset = async (value: string) => {
+    const next = Number(value) as PlanReminderOffset
+    setError(null)
+    setNotice(null)
+    setBusy(true)
+    const ok = await profileApi.savePreferences({
+      planReminderOffsetMinutes: next,
+      reminderTimezone: timezone,
+    })
+    setBusy(false)
+    if (ok) {
+      setNotice(`알림 시점을 ${PLAN_REMINDER_OFFSET_LABELS[next]}로 저장했어요.`)
+    }
+  }
+
+  return (
+    <section className={`${panelClass} mt-4 p-6`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-extrabold text-[#3d3a55]">
+            일정 시작 알림
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-[#8b88a3]">
+            공부 계획의 시작 시각에 맞춰 알려드려요. 시작 시간이 비어 있는
+            계획은 알림을 보내지 않습니다.
+          </p>
+        </div>
+        <span className="rounded-full bg-[#faf9ff] px-2.5 py-1 text-[11px] font-extrabold text-[#8b88a3]">
+          {enabled && profile.pushEnabled
+            ? '일정 알림 켜짐'
+            : enabled
+              ? '기기 등록 필요'
+              : '꺼짐'}
+        </span>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-4">
+        <label className="flex items-center gap-2 text-sm font-bold text-[#5f5c78]">
+          <input
+            type="checkbox"
+            checked={enabled}
+            disabled={busy || !supported}
+            onChange={(event) => {
+              if (event.target.checked) void enable()
+              else void disable()
+            }}
+            className="h-4 w-4 accent-[#6f68e8]"
+          />
+          일정 시작 알림 받기
+        </label>
+
+        <label className="text-xs font-bold text-[#5f5c78]">
+          알림 시점
+          <select
+            value={offset}
+            disabled={busy}
+            onChange={(event) => void updateOffset(event.target.value)}
+            className={`${inputClass} mt-1 block`}
+          >
+            {PLAN_REMINDER_OFFSETS.map((value) => (
+              <option key={value} value={value}>
+                {PLAN_REMINDER_OFFSET_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {enabled && !profile.pushEnabled && (
+          <button
+            type="button"
+            onClick={() => void enable()}
+            disabled={busy || !supported}
+            className={ghostButton}
+          >
+            {busy ? '등록 중…' : '기기 등록'}
+          </button>
+        )}
+      </div>
+
+      {!supported && (
+        <p className="mt-3 text-xs leading-relaxed text-[#b26a3f]">
+          이 브라우저는 백그라운드 알림을 지원하지 않아요. Chrome·Edge 또는
+          홈 화면에 설치한 PWA에서 사용해 주세요.
+        </p>
+      )}
+      {enabled && !profile.pushEnabled && (
+        <p className="mt-3 text-xs leading-relaxed text-[#b26a3f]">
+          알림을 받으려면 위의 기기 등록을 눌러 브라우저 권한과 FCM 기기를
+          등록해 주세요.
         </p>
       )}
       {error && (

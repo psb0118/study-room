@@ -70,7 +70,13 @@ async function deleteAccountData(
     refs.push(doc(fs, 'weeklyLeaderboards', weekKey, 'entries', uid))
   }
 
-  for (const subcollection of ['subjects', 'plans', 'records', 'devices']) {
+  for (const subcollection of [
+    'subjects',
+    'plans',
+    'records',
+    'devices',
+    'planReminderDeliveries',
+  ]) {
     const snap = await getDocs(collection(fs, STUDY_USERS, uid, subcollection))
     refs.push(...snap.docs.map((item) => item.ref))
   }

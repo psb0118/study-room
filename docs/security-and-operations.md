@@ -80,6 +80,8 @@ gcloud firestore import \
   표시합니다. FCM 기기를 등록하기 전의 기존 동작입니다.
 - **백그라운드 알림**: FCM 웹 푸시 기기 토큰을 등록하면 Cloud Functions의
   `sendStudyReminders`가 5분마다 실행되어 앱을 닫아도 알림을 보냅니다.
+- **일정 시작 알림**: `sendPlanReminders`가 5분마다 시작 시간이 있는 계획을
+  확인해 정시 또는 설정한 분 전에 알림을 보냅니다.
 
 서버 발송을 켜려면 다음이 필요합니다.
 
@@ -97,6 +99,11 @@ gcloud firestore import \
 - 함수는 `asia-northeast3`에서 5분마다 실행되며, 사용자별
   `reminderTimezone`과 `reminderTime`으로 로컬 시간을 계산합니다.
 - `lastReminderKey`로 하루 한 번만 발송합니다.
+- 일정 시작 알림은 `planReminderEnabled`, `planReminderOffsetMinutes`,
+  계획의 `plannedDate`·`startTime`으로 계산합니다.
+- `planReminderDeliveries`의 결정적 문서 ID로 같은 계획의 중복 발송을 막습니다.
+  서버만 생성·수정하고 본인은 읽기·계정 정리용 삭제만 할 수 있습니다.
+- 계획이 `completed`이거나 시작 시간이 비어 있으면 일정 알림을 보내지 않습니다.
 - `accountStatus == 'suspended'`인 계정과 기기 토큰이 없는 계정은 제외합니다.
 - 만료된 FCM 토큰은 발송 결과에서 확인해 기기 문서를 삭제합니다.
 - 알림 본문에는 민감한 학습 내용을 넣지 않습니다.

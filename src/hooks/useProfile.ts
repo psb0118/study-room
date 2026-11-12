@@ -16,6 +16,10 @@ import { firestoreMessage } from '../lib/errors'
 import { isTime } from '../lib/planner'
 import { normalizeWeeklyGoals } from '../lib/goals'
 import {
+  normalizePlanReminderOffset,
+  PLAN_REMINDER_OFFSETS,
+} from '../lib/planReminder'
+import {
   createUniqueFamilyCode,
   defaultProfile,
   normalizeProfile,
@@ -38,6 +42,8 @@ export interface ProfileApi {
     reminderTime?: string
     reminderTimezone?: string
     pushEnabled?: boolean
+    planReminderEnabled?: boolean
+    planReminderOffsetMinutes?: number
   }) => Promise<boolean>
   linkChild: (code: string) => Promise<boolean>
   unlinkChild: (childUid?: string) => Promise<boolean>
@@ -170,6 +176,8 @@ export function useProfile(user: User): ProfileApi {
     reminderTime?: string
     reminderTimezone?: string
     pushEnabled?: boolean
+    planReminderEnabled?: boolean
+    planReminderOffsetMinutes?: number
   }): Promise<boolean> => {
     if (!profile) {
       setActionError('프로필을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.')
@@ -187,6 +195,15 @@ export function useProfile(user: User): ProfileApi {
         return false
       }
     }
+    if (
+      typeof patch.planReminderOffsetMinutes === 'number' &&
+      !PLAN_REMINDER_OFFSETS.includes(
+        patch.planReminderOffsetMinutes as (typeof PLAN_REMINDER_OFFSETS)[number],
+      )
+    ) {
+      setActionError('올바른 알림 시점을 선택해 주세요.')
+      return false
+    }
     return run(async () => {
       const payload: Record<string, unknown> = { updatedAt: Date.now() }
       if (patch.weeklyGoals) {
@@ -201,6 +218,14 @@ export function useProfile(user: User): ProfileApi {
       }
       if (typeof patch.pushEnabled === 'boolean') {
         payload.pushEnabled = patch.pushEnabled
+      }
+      if (typeof patch.planReminderEnabled === 'boolean') {
+        payload.planReminderEnabled = patch.planReminderEnabled
+      }
+      if (typeof patch.planReminderOffsetMinutes === 'number') {
+        payload.planReminderOffsetMinutes = normalizePlanReminderOffset(
+          patch.planReminderOffsetMinutes,
+        )
       }
       await updateDoc(userRef, payload)
     })

@@ -71,6 +71,9 @@ export type PlanStatus = 'planned' | 'in_progress' | 'completed'
 
 export type Priority = 'low' | 'medium' | 'high'
 
+/** 공부 계획 시작 전 알림 시점(분) */
+export type PlanReminderOffset = 0 | 5 | 10 | 15 | 30
+
 export interface StudyPlan {
   id: string
   subjectId: string
@@ -145,6 +148,10 @@ export interface UserProfile {
   reminderTimezone: string
   /** FCM 기기 토큰이 등록됐는지 여부 */
   pushEnabled: boolean
+  /** 공부 계획 시작 시각 알림 사용 여부 */
+  planReminderEnabled: boolean
+  /** 계획 시작 몇 분 전에 알릴지 */
+  planReminderOffsetMinutes: PlanReminderOffset
   /** 서버가 마지막으로 알림을 보낸 로컬 날짜 */
   lastReminderKey: string
   lastReminderAt: number

@@ -39,6 +39,7 @@
 - **데이터 내보내기** — 현재 계정(부모는 선택한 자녀)의 프로필·과목·계획·기록을 JSON 또는 CSV로 저장합니다. 네트워크를 다시 호출하지 않아 오프라인에서도 내보낼 수 있습니다.
 - **주간 목표** — 과목별 주간 공부 시간 목표를 설정하고 이번 주 기록과 비교합니다. 부모 화면에서도 자녀의 목표 달성률을 볼 수 있습니다.
 - **백그라운드 학습 알림** — 브라우저 알림 권한과 FCM 기기 등록을 마치면, 앱을 닫아도 설정한 시간에 공부 알림을 받습니다. Cloud Functions가 사용자 시간대 기준으로 5분마다 발송합니다.
+- **공부 일정 시작 알림** — 시작 시간이 있는 공부 계획은 정시·5분 전·10분 전·15분 전·30분 전에 맞춰 알림을 받습니다. 앱을 닫아도 동작하며, 계획 완료·삭제·정지 계정은 자동으로 제외됩니다.
 - **PWA 설치** — Android Chrome에서는 설치 버튼으로, iPhone Safari에서는 공유 → 홈 화면에 추가로 스토어 없이 앱처럼 설치할 수 있습니다.
 - **계정 삭제** — 비밀번호 또는 Google 재인증과 확인 문구를 거친 뒤 프로필, 플래너 데이터, 가족 연결 코드, 순위표·주간 리그 항목을 정리하고 Auth 계정을 삭제합니다. 부모 계정 삭제 시 자녀의 학습 데이터는 유지됩니다.
 - **오프라인 지원** — Firestore 영구 캐시로 마지막 데이터를 읽고 변경을 대기열에 저장하며, 서비스 워커가 앱 셸과 해시된 JS/CSS를 캐시합니다. 오프라인 중에는 상단에 상태 안내가 표시되고, 연결이 돌아오면 저장 내용이 자동 동기화됩니다.
@@ -171,13 +172,17 @@ Cloud Functions와 Cloud Scheduler를 쓰려면 Firebase 프로젝트를 **Blaze
 
 5. `main`에 푸시해 Pages를 다시 배포한 뒤, 학생 화면의 **주간 목표 → 학습 알림**에서
    **백그라운드 알림 켜기**를 누릅니다. 브라우저 알림 권한을 허용해야 합니다.
-6. iPhone은 iOS 16.4 이상에서 **Safari → 공유 → 홈 화면에 추가**로 설치한 PWA에서만
+6. 같은 화면의 **일정 시작 알림**을 켜고 알림 시점을 고릅니다. 시작 시간이 있는
+   공부 계획마다 해당 시점에 알림이 발송됩니다.
+7. iPhone은 iOS 16.4 이상에서 **Safari → 공유 → 홈 화면에 추가**로 설치한 PWA에서만
    웹 푸시를 받을 수 있습니다.
 
-배포되는 함수는 `functions/src/index.ts`의 `sendStudyReminders`입니다.
-`asia-northeast3`에서 5분마다 실행되며, 각 사용자의 `reminderTimezone`과
-`reminderTime`을 비교해 하루 한 번만 발송합니다. 정지된 계정과 기기 토큰이 없는
-사용자는 건너뜁니다.
+배포되는 함수는 `functions/src/index.ts`의 `sendStudyReminders`와
+`sendPlanReminders`입니다. 둘 다 `asia-northeast3`에서 5분마다 실행됩니다.
+`sendStudyReminders`는 각 사용자의 `reminderTimezone`과 `reminderTime`을 비교해
+하루 한 번만 발송하고, `sendPlanReminders`는 `plannedDate`·`startTime`과
+`planReminderOffsetMinutes`를 비교해 계획별로 한 번 발송합니다. 정지된 계정과
+기기 토큰이 없는 사용자는 건너뜁니다.
 
 > `public/push-sw.js`에는 기본 Firebase 프로젝트 설정이 들어 있습니다. 다른
 > Firebase 프로젝트를 쓴다면 `src/firebase.ts`와 `public/push-sw.js`의 설정을
@@ -227,6 +232,7 @@ src/
     admin.ts             관리자 이메일·Google 로그인 판별
     goals.ts             주간 목표 정규화·달성률
     reminders.ts         다음 알림 시각 계산
+    planReminder.ts      일정 시작 알림 시점 정규화·라벨
     csv.ts               CSV 직렬화·다운로드
     errorLog.ts          관리자 전용 클라이언트 오류 로그
     pomodoro.ts          타이머 순수 로직 (상태 전이/잔여시간/진행률)
@@ -259,10 +265,12 @@ public/
   manifest.webmanifest  PWA 매니페스트
   icons/                PWA·홈 화면 아이콘
 functions/
-  src/index.ts          sendStudyReminders 예약 함수
-  src/reminders.ts       대상 조회·중복 방지
-  src/push.ts            FCM 멀티캐스트·만료 토큰 정리
-  src/time.ts            시간대·알림 시간 계산
+  src/index.ts          sendStudyReminders·sendPlanReminders 예약 함수
+  src/reminders.ts      하루 한 번 학습 알림 대상 조회·중복 방지
+  src/planReminders.ts  계획 시작 알림 대상 조회·중복 방지
+  src/planTime.ts       계획 날짜·시작 시각·알림 시점 계산
+  src/push.ts           FCM 멀티캐스트·만료 토큰 정리
+  src/time.ts           시간대·알림 시간 계산
 firebase/
   database.rules.json    Realtime Database 보안 규칙
   firestore.rules        Firestore 보안 규칙
@@ -276,8 +284,9 @@ firebase/
   - 참가자가 모두 나가면 15초 후 방 자동 삭제
 - **Firestore**: `studyUsers/{uid}` 프로필 + 하위 컬렉션
   - Firestore 영구 캐시를 사용해 온라인에서 본 데이터와 대기 중인 변경을 기기에 보관합니다. 서비스 워커는 앱 셸과 해시된 정적 자산을 캐시합니다.
-  - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended), `statusReason`(정지 사유), `weeklyGoals`(과목별 주간 목표), `reminderEnabled`, `reminderTime`, `reminderTimezone`, `pushEnabled`, `lastReminderKey`, `lastReminderAt`
+  - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended), `statusReason`(정지 사유), `weeklyGoals`(과목별 주간 목표), `reminderEnabled`, `reminderTime`, `reminderTimezone`, `pushEnabled`, `planReminderEnabled`, `planReminderOffsetMinutes`, `lastReminderKey`, `lastReminderAt`
   - `studyUsers/{uid}/devices/{tokenHash}` — FCM 웹 푸시 기기 토큰, 브라우저 정보, 등록·확인 시각
+  - `studyUsers/{uid}/planReminderDeliveries/{deliveryKey}` — 일정 알림의 계획·날짜·시작 시각·발송 상태·기기 수. 서버만 만들고 수정하며 본인은 읽고 삭제할 수 있습니다.
   - `subjects/{subjectId}` — 이름, 색상, 보관 여부
   - `plans/{planId}` — 과목, 제목, 날짜, 시간, 목표 분, 우선순위, 상태, `completedAt`(완료 시각), 메모
   - `records/{recordId}` — 과목, 연결 계획, 날짜 키, 시작/종료, 공부 시간, 출처(room/manual)
@@ -304,6 +313,7 @@ firebase/
 | 포인트 순위가 비어 있어요 | 계획을 완료한 뒤 순위표 동기화를 기다리고, 로그인/규칙 상태 확인 |
 | 주간 순위가 비어 있어요 | 최신 Firestore 규칙을 배포한 뒤, 이번 주 계획을 완료하고 동기화를 기다려 주세요 |
 | 백그라운드 알림이 오지 않아요 | 알림 권한 허용, `VITE_FCM_VAPID_KEY` 설정, Functions 배포, Firestore `devices` 규칙, Blaze 요금제를 확인하세요. iPhone은 홈 화면에 설치한 PWA에서만 동작합니다 |
+| 일정 시작 알림이 오지 않아요 | **주간 목표 → 일정 시작 알림**이 켜져 있는지, 계획에 시작 시간이 있는지, `planReminderOffsetMinutes`가 맞는지 확인하세요. 계획 완료·삭제 상태이거나 Functions 배포 전이면 발송되지 않습니다 |
 | 앱 설치 버튼이 보이지 않아요 | HTTPS(또는 localhost)로 접속하고, `manifest.webmanifest`와 서비스 워커가 로드되는지 확인하세요. iPhone Safari는 공유 → 홈 화면에 추가를 사용합니다 |
 | 오프라인에서 앱이 열리지 않아요 | 프로덕션 빌드로 한 번 이상 접속해 서비스 워커를 등록하고, 브라우저 사이트 데이터를 지우지 마세요 |
 | 계정 삭제가 `requires-recent-login`으로 실패해요 | 로그아웃 후 다시 로그인하거나, 이메일 계정은 비밀번호를 정확히 입력하고 Google 계정은 재인증 창을 완료해 주세요 |
