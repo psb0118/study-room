@@ -9,6 +9,7 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { fs } from '../firebase'
+import type { ImportBundle } from '../lib/exportData'
 import { SUBJECT_COLORS, todayKey } from '../lib/planner'
 import { STUDY_USERS } from '../lib/stats'
 import type {
@@ -294,6 +295,40 @@ export function usePlanner(uid: string) {
     )
   }
 
+  const importData = async (bundle: ImportBundle) => {
+    const total = bundle.subjects.length + bundle.plans.length + bundle.records.length
+    if (total === 0) {
+      setError('가져올 학습 데이터가 없어요.')
+      return false
+    }
+
+    return run(async () => {
+      const entries: { ref: ReturnType<typeof doc>; data: Record<string, unknown> }[] = []
+
+      for (const subject of bundle.subjects) {
+        const { id, ...data } = subject
+        entries.push({ ref: doc(subjectsCol, id), data })
+      }
+      for (const plan of bundle.plans) {
+        const { id, ...data } = plan
+        entries.push({ ref: doc(plansCol, id), data })
+      }
+      for (const record of bundle.records) {
+        const { id, ...data } = record
+        entries.push({ ref: doc(recordsCol, id), data })
+      }
+
+      // Firestore batch limit is 500; leave room for future metadata.
+      for (let start = 0; start < entries.length; start += 400) {
+        const batch = writeBatch(fs)
+        for (const entry of entries.slice(start, start + 400)) {
+          batch.set(entry.ref, entry.data)
+        }
+        await batch.commit()
+      }
+    })
+  }
+
   const deletePlan = async (id: string) =>
     run(async () => {
       await deleteDoc(doc(plansCol, id))
@@ -375,6 +410,7 @@ export function usePlanner(uid: string) {
     setSubjectArchived,
     savePlan,
     savePlans,
+    importData,
     deletePlan,
     setPlanStatus,
     addManualRecord,

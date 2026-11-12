@@ -25,6 +25,7 @@ import type {
   Subject,
 } from '../types'
 import type { View } from './AppShell'
+import { FocusTimer } from './FocusTimer'
 import {
   EmptyState,
   Field,
@@ -66,8 +67,14 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
     status: 'all',
   })
   const [modal, setModal] = useState<'new' | StudyPlan | null>(null)
+  const [focusPlan, setFocusPlan] = useState<StudyPlan | null>(null)
+  const [rescheduleBusy, setRescheduleBusy] = useState(false)
   const [query, setQuery] = useState('')
   const isParent = role === 'parent'
+  const today = todayKey()
+  const overdue = planner.plans.filter(
+    (plan) => plan.plannedDate < today && plan.status !== 'completed',
+  )
 
   const activeSubjects = planner.subjects.filter((s) => !s.archived)
   const normalizedQuery = query.trim().toLowerCase()
@@ -97,6 +104,47 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
       return
     }
     setModal('new')
+  }
+
+  const moveToToday = async (plan: StudyPlan) => {
+    setRescheduleBusy(true)
+    await planner.savePlan({
+      id: plan.id,
+      subjectId: plan.subjectId,
+      title: plan.title,
+      description: plan.description,
+      plannedDate: today,
+      startTime: plan.startTime,
+      endTime: plan.endTime,
+      targetMinutes: plan.targetMinutes,
+      priority: plan.priority,
+      status: plan.status,
+      completedAt: plan.completedAt,
+      memo: plan.memo,
+    })
+    setRescheduleBusy(false)
+  }
+
+  const moveAllToToday = async () => {
+    if (overdue.length === 0) return
+    setRescheduleBusy(true)
+    for (const plan of overdue) {
+      await planner.savePlan({
+        id: plan.id,
+        subjectId: plan.subjectId,
+        title: plan.title,
+        description: plan.description,
+        plannedDate: today,
+        startTime: plan.startTime,
+        endTime: plan.endTime,
+        targetMinutes: plan.targetMinutes,
+        priority: plan.priority,
+        status: plan.status,
+        completedAt: plan.completedAt,
+        memo: plan.memo,
+      })
+    }
+    setRescheduleBusy(false)
   }
 
   return (
@@ -173,6 +221,23 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
               + {template.title}
             </button>
           ))}
+        </section>
+      )}
+
+      {overdue.length > 0 && (
+        <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f2e0bd] bg-[#fff9ec] px-4 py-3 text-sm text-[#8f7b58]">
+          <span>
+            <strong className="font-extrabold">{overdue.length}개</strong>의
+            밀린 계획이 있어요. 오늘로 옮겨 다시 시작해 보세요.
+          </span>
+          <button
+            type="button"
+            onClick={() => void moveAllToToday()}
+            disabled={rescheduleBusy}
+            className={ghostButton}
+          >
+            {rescheduleBusy ? '이동 중…' : '모두 오늘로'}
+          </button>
         </section>
       )}
 
@@ -306,7 +371,26 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
                     </p>
                   )}
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                  {!isParent && (
+                    <button
+                      type="button"
+                      onClick={() => setFocusPlan(plan)}
+                      className="rounded-md border border-[#e6e1ff] bg-[#f7f4ff] px-2 py-1 text-[11px] font-extrabold text-[#6a63c9] transition hover:border-[#b9b4ff] hover:bg-[#f1eeff]"
+                    >
+                      집중
+                    </button>
+                  )}
+                  {plan.plannedDate < today && plan.status !== 'completed' && (
+                    <button
+                      type="button"
+                      onClick={() => void moveToToday(plan)}
+                      disabled={rescheduleBusy}
+                      className="rounded-md border border-[#f2e0bd] bg-[#fff9ec] px-2 py-1 text-[11px] font-extrabold text-[#9a7b4f] transition hover:border-[#e6c58f] hover:bg-[#fff4df]"
+                    >
+                      오늘로
+                    </button>
+                  )}
                   <select
                     value={plan.status}
                     onChange={(e) =>
@@ -372,6 +456,14 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
           planner={planner}
           subjects={planner.subjects}
           onClose={() => setModal(null)}
+        />
+      )}
+      {focusPlan && (
+        <FocusTimer
+          key={focusPlan.id}
+          plan={focusPlan}
+          planner={planner}
+          onClose={() => setFocusPlan(null)}
         />
       )}
     </div>

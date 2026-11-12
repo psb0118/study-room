@@ -11,6 +11,7 @@ import {
   PLAN_REMINDER_OFFSET_LABELS,
 } from '../lib/planReminder'
 import {
+  isPushConfigured,
   isPushSupported,
   registerPushToken,
   removePushToken,
@@ -224,6 +225,8 @@ function ReminderSettings({
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const configured = isPushConfigured()
+  const background = configured && pushEnabled
   const permission =
     typeof window !== 'undefined' && 'Notification' in window
       ? Notification.permission
@@ -238,6 +241,46 @@ function ReminderSettings({
   const enable = async () => {
     setError(null)
     setNotice(null)
+
+    // VAPID 키가 아직 없으면 앱을 열어둔 동안만 로컬 알림을 사용한다.
+    if (!configured) {
+      if (typeof window === 'undefined' || !('Notification' in window)) {
+        setError('이 브라우저에서는 알림을 지원하지 않아요.')
+        return
+      }
+      setBusy(true)
+      try {
+        const nextPermission =
+          Notification.permission === 'default'
+            ? await Notification.requestPermission()
+            : Notification.permission
+        if (nextPermission !== 'granted') {
+          setError(
+            '브라우저 알림 권한이 필요해요. 주소창의 알림 설정을 확인해 주세요.',
+          )
+          return
+        }
+        const ok = await profileApi.savePreferences({
+          reminderEnabled: true,
+          reminderTime: time,
+          reminderTimezone: timezone,
+        })
+        if (ok) {
+          setEnabled(true)
+          setNotice('앱을 열어둔 동안 로컬 알림을 켰어요. 서버 알림은 준비 중이에요.')
+        }
+      } catch (e) {
+        setError(
+          e instanceof Error
+            ? e.message
+            : '알림 설정 중 오류가 발생했어요.',
+        )
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
+
     if (!supported) {
       setError('이 브라우저에서는 백그라운드 알림을 지원하지 않아요.')
       return
@@ -323,16 +366,19 @@ function ReminderSettings({
             학습 알림
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-[#8b88a3]">
-            앱을 닫아도 정한 시간에 공부 시작을 알려드려요. 브라우저 알림
-            권한을 허용하고 기기를 등록해야 합니다.
+            {configured
+              ? '앱을 닫아도 정한 시간에 공부 시작을 알려드려요. 브라우저 알림 권한을 허용하고 기기를 등록해야 합니다.'
+              : '알림 서버 준비 중이라 지금은 앱을 열어둔 동안만 알림이 동작합니다.'}
           </p>
         </div>
         <span className="rounded-full bg-[#faf9ff] px-2.5 py-1 text-[11px] font-extrabold text-[#8b88a3]">
-          {pushEnabled
+          {background
             ? '백그라운드 알림 켜짐'
             : enabled
               ? '로컬 알림만 켜짐'
-              : '알림 꺼짐'}
+              : configured
+                ? '알림 꺼짐'
+                : '서버 준비 중'}
         </span>
       </div>
 
@@ -350,7 +396,7 @@ function ReminderSettings({
             className={`${inputClass} mt-1 block`}
           />
         </label>
-        {pushEnabled ? (
+        {background ? (
           <>
             <button
               type="button"
@@ -384,10 +430,14 @@ function ReminderSettings({
             <button
               type="button"
               onClick={() => void enable()}
-              disabled={busy || !supported}
+              disabled={busy || (configured && !supported)}
               className={primaryButton}
             >
-              {busy ? '등록 중…' : '백그라운드 알림 켜기'}
+              {busy
+                ? '저장 중…'
+                : configured
+                  ? '백그라운드 알림 켜기'
+                  : '로컬 알림 켜기'}
             </button>
             {enabled && (
               <button
@@ -403,13 +453,19 @@ function ReminderSettings({
         )}
       </div>
 
-      {!supported && (
+      {configured && !supported && (
         <p className="mt-3 text-xs leading-relaxed text-[#b26a3f]">
           이 브라우저는 백그라운드 알림을 지원하지 않아요. Chrome·Edge 또는
           홈 화면에 설치한 PWA에서 사용해 주세요.
         </p>
       )}
-      {enabled && !pushEnabled && (
+      {!configured && (
+        <p className="mt-3 text-xs leading-relaxed text-[#8b88a3]">
+          알림 서버가 준비되기 전에는 앱을 열어둔 동안만 로컬 알림이
+          동작합니다.
+        </p>
+      )}
+      {enabled && !background && configured && (
         <p className="mt-3 text-xs leading-relaxed text-[#8b88a3]">
           현재는 앱을 열어둔 동안만 알림을 받는 로컬 알림 상태예요. 위 버튼을
           누르면 앱을 닫아도 받을 수 있는 백그라운드 알림으로 전환됩니다.
@@ -453,6 +509,10 @@ function PlanReminderSettings({
   const [busy, setBusy] = useState(false)
   const enabled = profile.planReminderEnabled
   const offset = profile.planReminderOffsetMinutes
+  const configured = isPushConfigured()
+  const supportsLocal =
+    typeof window !== 'undefined' && 'Notification' in window
+  const canEnable = configured ? supported : supportsLocal
   const timezone =
     Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Seoul'
 
@@ -463,6 +523,47 @@ function PlanReminderSettings({
   const enable = async () => {
     setError(null)
     setNotice(null)
+
+    // 서버 키가 아직 없으면 앱을 열어둔 동안만 로컬 알림을 사용한다.
+    if (!configured) {
+      if (!supportsLocal) {
+        setError('이 브라우저에서는 알림을 지원하지 않아요.')
+        return
+      }
+      setBusy(true)
+      try {
+        const permission =
+          Notification.permission === 'default'
+            ? await Notification.requestPermission()
+            : Notification.permission
+        if (permission !== 'granted') {
+          setError(
+            '브라우저 알림 권한이 필요해요. 주소창의 알림 설정을 확인해 주세요.',
+          )
+          return
+        }
+        const ok = await profileApi.savePreferences({
+          planReminderEnabled: true,
+          planReminderOffsetMinutes: offset,
+          reminderTimezone: timezone,
+        })
+        if (ok) {
+          setNotice(
+            '앱을 열어둔 동안 일정 알림을 켰어요. 서버 알림은 준비 중이에요.',
+          )
+        }
+      } catch (e) {
+        setError(
+          e instanceof Error
+            ? e.message
+            : '알림 설정 중 오류가 발생했어요.',
+        )
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
+
     if (!supported) {
       setError('이 브라우저에서는 백그라운드 알림을 지원하지 않아요.')
       return
@@ -543,14 +644,24 @@ function PlanReminderSettings({
           <p className="mt-1 text-sm leading-relaxed text-[#8b88a3]">
             공부 계획의 시작 시각에 맞춰 알려드려요. 시작 시간이 비어 있는
             계획은 알림을 보내지 않습니다.
+            {!configured && (
+              <>
+                {' '}
+                지금은 알림 서버 준비 중이라 앱을 열어둔 동안만 동작합니다.
+              </>
+            )}
           </p>
         </div>
         <span className="rounded-full bg-[#faf9ff] px-2.5 py-1 text-[11px] font-extrabold text-[#8b88a3]">
-          {enabled && profile.pushEnabled
-            ? '일정 알림 켜짐'
-            : enabled
-              ? '기기 등록 필요'
-              : '꺼짐'}
+          {enabled
+            ? configured
+              ? profile.pushEnabled
+                ? '일정 알림 켜짐'
+                : '기기 등록 필요'
+              : '로컬 알림 켜짐'
+            : configured
+              ? '꺼짐'
+              : '서버 준비 중'}
         </span>
       </div>
 
@@ -559,7 +670,7 @@ function PlanReminderSettings({
           <input
             type="checkbox"
             checked={enabled}
-            disabled={busy || !supported}
+            disabled={busy || !canEnable}
             onChange={(event) => {
               if (event.target.checked) void enable()
               else void disable()
@@ -585,7 +696,7 @@ function PlanReminderSettings({
           </select>
         </label>
 
-        {enabled && !profile.pushEnabled && (
+        {configured && enabled && !profile.pushEnabled && (
           <button
             type="button"
             onClick={() => void enable()}
@@ -597,13 +708,19 @@ function PlanReminderSettings({
         )}
       </div>
 
-      {!supported && (
+      {configured && !supported && (
         <p className="mt-3 text-xs leading-relaxed text-[#b26a3f]">
           이 브라우저는 백그라운드 알림을 지원하지 않아요. Chrome·Edge 또는
           홈 화면에 설치한 PWA에서 사용해 주세요.
         </p>
       )}
-      {enabled && !profile.pushEnabled && (
+      {!configured && !supportsLocal && (
+        <p className="mt-3 text-xs leading-relaxed text-[#b26a3f]">
+          이 브라우저는 알림을 지원하지 않아요. Chrome·Edge 또는 홈 화면에
+          설치한 PWA에서 사용해 주세요.
+        </p>
+      )}
+      {configured && enabled && !profile.pushEnabled && (
         <p className="mt-3 text-xs leading-relaxed text-[#b26a3f]">
           알림을 받으려면 위의 기기 등록을 눌러 브라우저 권한과 FCM 기기를
           등록해 주세요.

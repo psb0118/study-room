@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { User } from 'firebase/auth'
 import type { PlannerApi } from '../hooks/usePlanner'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { deleteAccount } from '../lib/account'
 import { authMessage } from '../lib/errors'
 import { csvFileName, downloadText, toCsv } from '../lib/csv'
-import { buildExportBundle, exportFileName } from '../lib/exportData'
+import {
+  buildExportBundle,
+  exportFileName,
+  parseImportBundle,
+} from '../lib/exportData'
 import type { UserProfile } from '../types'
 import {
   Modal,
@@ -39,6 +43,12 @@ export function DataSettings({
   const targetName = target.nickname || target.name
   const [exportNotice, setExportNotice] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [importBusy, setImportBusy] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const canImport =
+    profile.role === 'student' &&
+    target.uid === profile.uid &&
+    Boolean(targetPlanner)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmText, setConfirmText] = useState('')
@@ -129,6 +139,45 @@ export function DataSettings({
           ? e.message
           : '데이터를 내보내지 못했어요. 잠시 후 다시 시도해 주세요.',
       )
+    }
+  }
+
+  const importJson = async () => {
+    if (!canImport || !targetPlanner) return
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
+
+    setImportBusy(true)
+    setExportNotice(null)
+    setExportError(null)
+    try {
+      const bundle = parseImportBundle(await file.text())
+      const total =
+        bundle.subjects.length + bundle.plans.length + bundle.records.length
+      if (total === 0) {
+        setExportError('가져올 학습 데이터가 없어요.')
+        return
+      }
+      if (
+        !window.confirm(
+          `과목 ${bundle.subjects.length}개, 계획 ${bundle.plans.length}개, 기록 ${bundle.records.length}개를 가져올까요?\n같은 ID의 데이터는 덮어씁니다. 프로필 정보는 가져오지 않아요.`,
+        )
+      ) {
+        return
+      }
+      const ok = await targetPlanner.importData(bundle)
+      if (ok) {
+        setExportNotice(
+          `${total}개 항목을 가져왔어요. 화면에 반영되는 것을 확인해 주세요.`,
+        )
+      }
+    } catch (e) {
+      setExportError(
+        e instanceof Error ? e.message : '데이터를 가져오지 못했어요.',
+      )
+    } finally {
+      setImportBusy(false)
+      if (fileRef.current) fileRef.current.value = ''
     }
   }
 
@@ -232,6 +281,29 @@ export function DataSettings({
             >
               CSV로 내보내기
             </button>
+            {canImport && (
+              <>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={() => void importJson()}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={importBusy || exportLoading}
+                  className={`${ghostButton} mt-2 w-full`}
+                >
+                  {importBusy ? '가져오는 중…' : 'JSON 가져오기'}
+                </button>
+                <p className="mt-2 text-[11px] leading-relaxed text-[#a8a5bb]">
+                  내보낸 학습 데이터만 복원합니다. 프로필과 로그인 정보는
+                  덮어쓰지 않아요.
+                </p>
+              </>
+            )}
             {exportNotice && (
               <p className="mt-2 text-[11px] leading-relaxed text-[#3f9f7f]">
                 {exportNotice}

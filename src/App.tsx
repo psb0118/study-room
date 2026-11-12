@@ -22,6 +22,7 @@ import { usePlanner } from './hooks/usePlanner'
 import { useChildProfile, useProfile, type ProfileApi } from './hooks/useProfile'
 import { usePointsSync } from './hooks/usePointsSync'
 import { useForegroundPush } from './hooks/useForegroundPush'
+import { usePlanReminders } from './hooks/usePlanReminders'
 import { useStudyReminder } from './hooks/useStudyReminder'
 import type { UserProfile } from './types'
 
@@ -160,6 +161,7 @@ function StudentWorkspace({
   const [view, setView] = useState<View>('home')
   const [code, setCode] = useState<string | null>(null)
   useStudyReminder(profile)
+  usePlanReminders(planner.plans, profile)
   useForegroundPush(profile.pushEnabled)
   usePointsSync(user.uid, profile, planner.plans, !planner.loading)
 

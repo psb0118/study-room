@@ -39,6 +39,11 @@ export interface PushResult {
   error?: string
 }
 
+/** FCM 공개 키가 빌드에 포함됐는지 확인한다. */
+export function isPushConfigured(): boolean {
+  return Boolean(VAPID_KEY)
+}
+
 export async function isPushSupported(): Promise<boolean> {
   if (
     typeof window === 'undefined' ||

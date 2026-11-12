@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { UserProfile } from '../types'
 import { showBrowserNotification } from '../lib/notifications'
+import { isPushConfigured } from '../lib/push'
 import { nextReminderAt } from '../lib/reminders'
 
 /**
@@ -9,8 +10,9 @@ import { nextReminderAt } from '../lib/reminders'
  */
 export function useStudyReminder(profile: UserProfile) {
   useEffect(() => {
-    // FCM 기기가 등록된 사용자는 서버 알림을 사용한다.
-    if (profile.pushEnabled) return
+    // FCM 기기가 등록된 사용자는 서버 알림을 사용한다. VAPID 키가 없는
+    // 빌드에서는 기기 등록이 남아 있어도 로컬 알림으로 동작한다.
+    if (profile.pushEnabled && isPushConfigured()) return
     if (!profile.reminderEnabled || !profile.reminderTime) return
     if (typeof window === 'undefined' || !('Notification' in window)) return
 

@@ -5,7 +5,11 @@ import type {
   Subject,
   UserProfile,
 } from '../types'
-import { buildExportBundle, exportFileName } from './exportData'
+import {
+  buildExportBundle,
+  exportFileName,
+  parseImportBundle,
+} from './exportData'
 
 const parent: UserProfile = {
   uid: 'parent-1',
@@ -136,5 +140,42 @@ describe('buildExportBundle', () => {
         new Date(2026, 10, 11, 12),
       ),
     ).toBe('haru-gyeol-공부왕-2026-11-11.json')
+  })
+})
+
+describe('parseImportBundle', () => {
+  it('restores the learning data from an exported bundle', () => {
+    const bundle = buildExportBundle({
+      exportedBy: student,
+      target: student,
+      subjects: [subject],
+      plans: [plan],
+      records: [record],
+    })
+    const parsed = parseImportBundle(JSON.stringify(bundle))
+
+    expect(parsed.subjects).toEqual([subject])
+    expect(parsed.plans).toEqual([plan])
+    expect(parsed.records).toEqual([record])
+  })
+
+  it('rejects malformed or foreign backups', () => {
+    expect(() => parseImportBundle('not json')).toThrow()
+    expect(() => parseImportBundle('{}')).toThrow()
+    expect(() =>
+      parseImportBundle(
+        JSON.stringify({
+          app: '하루결',
+          version: 1,
+          subjects: [],
+          plans: [
+            {
+              ...plan,
+              plannedDate: '2026-99-99',
+            },
+          ],
+        }),
+      ),
+    ).toThrow()
   })
 })

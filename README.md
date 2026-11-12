@@ -39,7 +39,11 @@
 - **데이터 내보내기** — 현재 계정(부모는 선택한 자녀)의 프로필·과목·계획·기록을 JSON 또는 CSV로 저장합니다. 네트워크를 다시 호출하지 않아 오프라인에서도 내보낼 수 있습니다.
 - **주간 목표** — 과목별 주간 공부 시간 목표를 설정하고 이번 주 기록과 비교합니다. 부모 화면에서도 자녀의 목표 달성률을 볼 수 있습니다.
 - **백그라운드 학습 알림** — 브라우저 알림 권한과 FCM 기기 등록을 마치면, 앱을 닫아도 설정한 시간에 공부 알림을 받습니다. Cloud Functions가 사용자 시간대 기준으로 5분마다 발송합니다.
-- **공부 일정 시작 알림** — 시작 시간이 있는 공부 계획은 정시·5분 전·10분 전·15분 전·30분 전에 맞춰 알림을 받습니다. 앱을 닫아도 동작하며, 계획 완료·삭제·정지 계정은 자동으로 제외됩니다.
+- **공부 일정 시작 알림** — 시작 시간이 있는 공부 계획은 정시·5분 전·10분 전·15분 전·30분 전에 맞춰 알림을 받습니다. 앱을 닫아도 동작하며, 계획 완료·삭제·정지 계정은 자동으로 제외됩니다. 알림 서버가 준비되기 전에는 앱을 열어둔 동안 로컬 알림으로 동작합니다.
+- **계획에서 바로 집중** — 공부 계획 카드에서 집중 타이머를 열어 바로 기록을 시작할 수 있습니다.
+- **밀린 계획 정리** — 지난 날짜의 미완료 계획을 오늘로 옮기거나 한 번에 모두 옮길 수 있습니다.
+- **JSON 복원** — 내보낸 JSON 백업에서 과목·계획·기록을 검증해 다시 가져옵니다. 프로필은 덮어쓰지 않습니다.
+- **주간 회고** — 이번 주 완료율, 공부 시간, 연속 학습, 가장 많이 공부한 과목, 다음 주로 이어갈 계획을 확인합니다.
 - **PWA 설치** — Android Chrome에서는 설치 버튼으로, iPhone Safari에서는 공유 → 홈 화면에 추가로 스토어 없이 앱처럼 설치할 수 있습니다.
 - **계정 삭제** — 비밀번호 또는 Google 재인증과 확인 문구를 거친 뒤 프로필, 플래너 데이터, 가족 연결 코드, 순위표·주간 리그 항목을 정리하고 Auth 계정을 삭제합니다. 부모 계정 삭제 시 자녀의 학습 데이터는 유지됩니다.
 - **오프라인 지원** — Firestore 영구 캐시로 마지막 데이터를 읽고 변경을 대기열에 저장하며, 서비스 워커가 앱 셸과 해시된 JS/CSS를 캐시합니다. 오프라인 중에는 상단에 상태 안내가 표시되고, 연결이 돌아오면 저장 내용이 자동 동기화됩니다.
@@ -226,6 +230,7 @@ src/
     useAdminUsers.ts     관리자 사용자 목록 조회·계정 상태 변경
     useAdminErrors.ts    관리자 오류 로그 조회
     useStudyReminder.ts  앱이 열린 동안 로컬 학습 알림 예약
+    usePlanReminders.ts  앱이 열린 동안 일정 시작 로컬 알림 예약
     useForegroundPush.ts FCM 포그라운드 알림 표시
   lib/
     accountStatus.ts     계정 이용 상태 정규화·라벨
@@ -240,7 +245,7 @@ src/
     planner.ts           플래너 날짜/필터/통계/검증 순수 로직
     points.ts            완료 포인트/레벨/칭호 계산
     profile.ts           프로필 기본값, 가족 코드, 기본 과목
-    exportData.ts        JSON 내보내기 번들·파일명
+    exportData.ts        JSON 내보내기 번들·파일명·가져오기 검증
     account.ts           재인증 후 계정·가족·학습 데이터 삭제
     weeklyKeys.ts        계정 삭제 시 정리할 주간 리그 키
     errors.ts            Firebase 오류 한국어 메시지
@@ -287,6 +292,7 @@ firebase/
   - `studyUsers/{uid}` — 이름, 닉네임, 이메일, 역할(student/parent), `familyCode`, `childUid`, `childUids`, `childNames`, `accountStatus`(active/suspended), `statusReason`(정지 사유), `weeklyGoals`(과목별 주간 목표), `reminderEnabled`, `reminderTime`, `reminderTimezone`, `pushEnabled`, `planReminderEnabled`, `planReminderOffsetMinutes`, `lastReminderKey`, `lastReminderAt`
   - `studyUsers/{uid}/devices/{tokenHash}` — FCM 웹 푸시 기기 토큰, 브라우저 정보, 등록·확인 시각
   - `studyUsers/{uid}/planReminderDeliveries/{deliveryKey}` — 일정 알림의 계획·날짜·시작 시각·발송 상태·기기 수. 서버만 만들고 수정하며 본인은 읽고 삭제할 수 있습니다.
+  - JSON 가져오기는 과목·계획·기록만 같은 ID로 덮어쓰거나 추가하며, 프로필·가족 연결·순위표는 건드리지 않습니다.
   - `subjects/{subjectId}` — 이름, 색상, 보관 여부
   - `plans/{planId}` — 과목, 제목, 날짜, 시간, 목표 분, 우선순위, 상태, `completedAt`(완료 시각), 메모
   - `records/{recordId}` — 과목, 연결 계획, 날짜 키, 시작/종료, 공부 시간, 출처(room/manual)
