@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { User } from 'firebase/auth'
 import { AdminDashboard } from './components/Admin'
+import { AdminStudentPreview } from './components/AdminStudentPreview'
 import { AppShell, type View } from './components/AppShell'
 import { Dashboard } from './components/Dashboard'
 import { Family } from './components/Family'
@@ -132,6 +133,17 @@ function AdminWorkspace({
   profile: UserProfile
   onLogout: () => void
 }) {
+  const [previewing, setPreviewing] = useState(false)
+
+  if (previewing) {
+    return (
+      <AdminStudentPreview
+        admin={profile}
+        onExit={() => setPreviewing(false)}
+      />
+    )
+  }
+
   return (
     <AppShell
       name={profile.name}
@@ -141,7 +153,10 @@ function AdminWorkspace({
       onNavigate={() => {}}
       onLogout={onLogout}
     >
-      <AdminDashboard admin={profile} />
+      <AdminDashboard
+        admin={profile}
+        onPreviewPlanner={() => setPreviewing(true)}
+      />
     </AppShell>
   )
 }

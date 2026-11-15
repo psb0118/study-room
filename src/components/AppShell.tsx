@@ -53,6 +53,8 @@ interface AppShellProps {
   view: View
   onNavigate: (view: View) => void
   onLogout: () => void
+  logoutLabel?: string
+  preview?: boolean
   children: ReactNode
 }
 
@@ -63,6 +65,8 @@ export function AppShell({
   view,
   onNavigate,
   onLogout,
+  logoutLabel = '로그아웃',
+  preview = false,
   children,
 }: AppShellProps) {
   const nav =
@@ -74,8 +78,9 @@ export function AppShell({
         ? ADMIN_MOBILE
         : STUDENT_MOBILE
   const mobileNav = nav.filter((item) => mobileIds.includes(item.id))
-  const roleLabel =
-    role === 'parent'
+  const roleLabel = preview
+    ? '학생 미리보기'
+    : role === 'parent'
       ? '부모 관리'
       : role === 'admin'
         ? '관리자'
@@ -137,18 +142,20 @@ export function AppShell({
                 onClick={onLogout}
                 className="text-[11px] text-[#9692ad] transition hover:text-[#5f57c8]"
               >
-                로그아웃
+                {logoutLabel}
               </button>
             </div>
           </div>
           <strong className="block text-[11px] text-[#5f57c8]">
-            내 계정에 안전하게 저장 중
+            {preview ? '미리보기 모드' : '내 계정에 안전하게 저장 중'}
           </strong>
-          {role === 'parent'
-            ? '자녀의 계획과 포인트가 Firebase에 동기화됩니다.'
-            : role === 'admin'
-              ? '관리자 화면에서 계정 이용 상태를 관리할 수 있습니다.'
-              : '계획과 기록은 로그인한 계정에 동기화됩니다.'}
+          {preview
+            ? '데모 데이터로만 동작하며 실제 계정에는 저장되지 않습니다.'
+            : role === 'parent'
+              ? '자녀의 계획과 포인트가 Firebase에 동기화됩니다.'
+              : role === 'admin'
+                ? '관리자 화면에서 계정 이용 상태를 관리할 수 있습니다.'
+                : '계획과 기록은 로그인한 계정에 동기화됩니다.'}
         </div>
       </aside>
 
@@ -170,14 +177,14 @@ export function AppShell({
               onClick={onLogout}
               className="text-xs font-medium text-[#8b88a3] transition hover:text-[#6f68e8]"
             >
-              로그아웃
+              {logoutLabel}
             </button>
           </div>
         </header>
 
         <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
           <OfflineNotice />
-          <InstallPrompt />
+          {!preview && <InstallPrompt />}
           {children}
         </main>
       </div>

@@ -29,10 +29,12 @@ export function Goals({
   profile,
   profileApi,
   planner,
+  preview = false,
 }: {
   profile: UserProfile
   profileApi: ProfileApi
   planner: PlannerApi
+  preview?: boolean
 }) {
   const activeSubjects = planner.subjects.filter((subject) => !subject.archived)
   const [form, setForm] = useState<Record<string, string>>({})
@@ -205,8 +207,22 @@ export function Goals({
         </section>
       )}
 
-      <ReminderSettings profile={profile} profileApi={profileApi} />
-      <PlanReminderSettings profile={profile} profileApi={profileApi} />
+      {preview ? (
+        <section className={`${panelClass} mt-4 p-6`}>
+          <h2 className="text-base font-extrabold text-[#3d3a55]">
+            알림 설정
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#8b88a3]">
+            관리자 미리보기에서는 실제 브라우저 알림을 켜거나 기기를 등록할 수
+            없어요. 학습 알림과 일정 시작 알림은 학생 계정에서 확인해 주세요.
+          </p>
+        </section>
+      ) : (
+        <>
+          <ReminderSettings profile={profile} profileApi={profileApi} />
+          <PlanReminderSettings profile={profile} profileApi={profileApi} />
+        </>
+      )}
     </div>
   )
 }

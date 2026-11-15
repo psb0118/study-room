@@ -33,7 +33,13 @@ function dateLabel(ms: number): string {
 }
 
 /** 관리자 전용 화면. 사용자 프로필의 이용 상태만 변경할 수 있다. */
-export function AdminDashboard({ admin }: { admin: UserProfile }) {
+export function AdminDashboard({
+  admin,
+  onPreviewPlanner,
+}: {
+  admin: UserProfile
+  onPreviewPlanner?: () => void
+}) {
   const {
     users,
     loading,
@@ -115,14 +121,25 @@ export function AdminDashboard({ admin }: { admin: UserProfile }) {
         title="관리자"
         description={`${ADMIN_EMAIL} 계정으로 로그인했어요. 전체 사용자와 가족 연결 현황을 확인하고 계정 이용 상태를 관리할 수 있어요.`}
         action={
-          <button
-            type="button"
-            onClick={exportUsers}
-            disabled={loading || users.length === 0}
-            className="rounded-xl border border-[#e6e1f5] bg-white px-3 py-2 text-xs font-extrabold text-[#77738f] transition hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            사용자 CSV
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {onPreviewPlanner && (
+              <button
+                type="button"
+                onClick={onPreviewPlanner}
+                className="rounded-xl bg-[#6f68e8] px-3 py-2 text-xs font-extrabold text-white transition hover:bg-[#5f57c8]"
+              >
+                학생 플래너 미리보기
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={exportUsers}
+              disabled={loading || users.length === 0}
+              className="rounded-xl border border-[#e6e1f5] bg-white px-3 py-2 text-xs font-extrabold text-[#77738f] transition hover:bg-[#faf9ff] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              사용자 CSV
+            </button>
+          </div>
         }
       />
 
