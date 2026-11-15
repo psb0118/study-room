@@ -31,6 +31,7 @@ interface DashboardProps {
   photo?: string
   planner: PlannerApi
   onNavigate: (view: View) => void
+  readOnly?: boolean
 }
 
 export function Dashboard({
@@ -38,6 +39,7 @@ export function Dashboard({
   photo,
   planner,
   onNavigate,
+  readOnly = false,
 }: DashboardProps) {
   const { subjects, plans, records, loading } = planner
   const [todayLabel] = useState(() =>
@@ -80,13 +82,15 @@ export function Dashboard({
             >
               계획 관리
             </button>
-            <button
-              type="button"
-              onClick={() => onNavigate('rooms')}
-              className={primaryButton}
-            >
-              스터디 룸 입장
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => onNavigate('rooms')}
+                className={primaryButton}
+              >
+                스터디 룸 입장
+              </button>
+            )}
           </div>
         }
       />
@@ -151,23 +155,36 @@ export function Dashboard({
                       key={plan.id}
                       className="flex items-center gap-3 rounded-[13px] border border-[#f1eef9] bg-white px-3.5 py-3 transition hover:border-[#d8d3e8] hover:shadow-[0_5px_15px_rgba(61,58,85,0.04)]"
                     >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void planner.setPlanStatus(
-                            plan.id,
-                            done ? 'planned' : 'completed',
-                          )
-                        }
-                        aria-label={done ? '완료 취소' : '완료 표시'}
-                        className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[11px] transition ${
-                          done
-                            ? 'border-[#ccecdd] bg-[#e8f8f0] text-[#3f9f7f]'
-                            : 'border-[#e4e0f0] bg-white text-transparent hover:border-[#8d86f5]'
-                        }`}
-                      >
-                        ✓
-                      </button>
+                      {readOnly ? (
+                        <span
+                          aria-hidden="true"
+                          className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[11px] ${
+                            done
+                              ? 'border-[#ccecdd] bg-[#e8f8f0] text-[#3f9f7f]'
+                              : 'border-[#e4e0f0] bg-white text-transparent'
+                          }`}
+                        >
+                          ✓
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void planner.setPlanStatus(
+                              plan.id,
+                              done ? 'planned' : 'completed',
+                            )
+                          }
+                          aria-label={done ? '완료 취소' : '완료 표시'}
+                          className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[11px] transition ${
+                            done
+                              ? 'border-[#ccecdd] bg-[#e8f8f0] text-[#3f9f7f]'
+                              : 'border-[#e4e0f0] bg-white text-transparent hover:border-[#8d86f5]'
+                          }`}
+                        >
+                          ✓
+                        </button>
+                      )}
                       <span
                         className="h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: subject.color }}
@@ -197,13 +214,15 @@ export function Dashboard({
                       >
                         {done ? `+${reward}P` : `${reward}P`}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => setFocusPlan(plan)}
-                        className="shrink-0 rounded-md border border-[#e6e1ff] bg-[#f7f4ff] px-2 py-1 text-[11px] font-extrabold text-[#6a63c9] transition hover:border-[#b9b4ff] hover:bg-[#f1eeff]"
-                      >
-                        집중
-                      </button>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          onClick={() => setFocusPlan(plan)}
+                          className="shrink-0 rounded-md border border-[#e6e1ff] bg-[#f7f4ff] px-2 py-1 text-[11px] font-extrabold text-[#6a63c9] transition hover:border-[#b9b4ff] hover:bg-[#f1eeff]"
+                        >
+                          집중
+                        </button>
+                      )}
                       <StatusBadge status={plan.status} />
                     </li>
                   )
@@ -215,13 +234,15 @@ export function Dashboard({
                 title="오늘은 아직 비어 있어요"
                 description="작은 계획 하나부터 시작해볼까요?"
                 action={
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('plans')}
-                    className={primaryButton}
-                  >
-                    계획 추가
-                  </button>
+                  readOnly ? undefined : (
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('plans')}
+                      className={primaryButton}
+                    >
+                      계획 추가
+                    </button>
+                  )
                 }
               />
             )}
@@ -330,7 +351,7 @@ export function Dashboard({
           </section>
         </div>
       </div>
-      {focusPlan && (
+      {!readOnly && focusPlan && (
         <FocusTimer
           key={focusPlan.id}
           plan={focusPlan}

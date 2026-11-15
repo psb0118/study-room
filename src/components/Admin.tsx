@@ -36,9 +36,11 @@ function dateLabel(ms: number): string {
 export function AdminDashboard({
   admin,
   onPreviewPlanner,
+  onOpenStudentPlanner,
 }: {
   admin: UserProfile
   onPreviewPlanner?: () => void
+  onOpenStudentPlanner?: (student: UserProfile) => void
 }) {
   const {
     users,
@@ -279,38 +281,49 @@ export function AdminDashboard({
                       </p>
                     )}
                   </div>
-                  {!isMe && !isAdmin && (
-                    <button
-                      type="button"
-                      disabled={busyUid === user.uid}
-                      onClick={() => {
-                        if (suspended) {
-                          if (
-                            window.confirm(
-                              `${name} 계정의 이용을 다시 시작할까요?`,
-                            )
-                          ) {
-                            void setAccountStatus(user.uid, 'active')
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    {user.role === 'student' && onOpenStudentPlanner && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenStudentPlanner(user)}
+                        className="rounded-xl border border-[#d6d1ff] bg-[#f7f4ff] px-3 py-2 text-xs font-extrabold text-[#6a63c9] transition hover:bg-[#f1eeff]"
+                      >
+                        플래너 보기
+                      </button>
+                    )}
+                    {!isMe && !isAdmin && (
+                      <button
+                        type="button"
+                        disabled={busyUid === user.uid}
+                        onClick={() => {
+                          if (suspended) {
+                            if (
+                              window.confirm(
+                                `${name} 계정의 이용을 다시 시작할까요?`,
+                              )
+                            ) {
+                              void setAccountStatus(user.uid, 'active')
+                            }
+                            return
                           }
-                          return
+                          setSuspendTarget(user)
+                          setReason('')
+                          setReasonError('')
+                        }}
+                        className={
+                          suspended
+                            ? 'rounded-xl border border-[#c9e9d8] bg-[#f0fbf5] px-3 py-2 text-xs font-extrabold text-[#3d9b6a] transition hover:bg-[#e6f8ee] disabled:cursor-wait disabled:opacity-60'
+                            : 'rounded-xl border border-[#f2ccd5] bg-[#fff5f7] px-3 py-2 text-xs font-extrabold text-[#d96a7c] transition hover:bg-[#ffecef] disabled:cursor-wait disabled:opacity-60'
                         }
-                        setSuspendTarget(user)
-                        setReason('')
-                        setReasonError('')
-                      }}
-                      className={
-                        suspended
-                          ? 'rounded-xl border border-[#c9e9d8] bg-[#f0fbf5] px-3 py-2 text-xs font-extrabold text-[#3d9b6a] transition hover:bg-[#e6f8ee] disabled:cursor-wait disabled:opacity-60'
-                          : 'rounded-xl border border-[#f2ccd5] bg-[#fff5f7] px-3 py-2 text-xs font-extrabold text-[#d96a7c] transition hover:bg-[#ffecef] disabled:cursor-wait disabled:opacity-60'
-                      }
-                    >
-                      {busyUid === user.uid
-                        ? '처리 중…'
-                        : suspended
-                          ? '이용 재개'
-                          : '이용 정지'}
-                    </button>
-                  )}
+                      >
+                        {busyUid === user.uid
+                          ? '처리 중…'
+                          : suspended
+                            ? '이용 재개'
+                            : '이용 정지'}
+                      </button>
+                    )}
+                  </div>
                 </li>
               )
             })}

@@ -20,9 +20,14 @@ import {
 interface ScheduleProps {
   planner: PlannerApi
   onNavigate: (view: View) => void
+  readOnly?: boolean
 }
 
-export function Schedule({ planner, onNavigate }: ScheduleProps) {
+export function Schedule({
+  planner,
+  onNavigate,
+  readOnly = false,
+}: ScheduleProps) {
   const [offset, setOffset] = useState(0)
   const today = todayKey()
   const monday = addDays(startOfWeek(today), offset * 7)
@@ -67,13 +72,15 @@ export function Schedule({ planner, onNavigate }: ScheduleProps) {
             {formatDateKey(monday, { month: 'long', day: 'numeric' })} –{' '}
             {formatDateKey(dates[6], { month: 'long', day: 'numeric' })}
           </h2>
-          <button
-            type="button"
-            onClick={() => onNavigate('plans')}
-            className={primaryButton}
-          >
-            계획 추가
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => onNavigate('plans')}
+              className={primaryButton}
+            >
+              계획 추가
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto pb-1">
@@ -125,23 +132,36 @@ export function Schedule({ planner, onNavigate }: ScheduleProps) {
                                 : '시간 미정'}{' '}
                               · {subject.name}
                             </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void planner.setPlanStatus(
-                                  plan.id,
-                                  done ? 'planned' : 'completed',
-                                )
-                              }
-                              aria-label={done ? '완료 취소' : '완료 표시'}
-                              className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[10px] transition ${
-                                done
-                                  ? 'border-[#ccecdd] bg-[#e8f8f0] text-[#3f9f7f]'
-                                  : 'border-[#e4e0f0] bg-white text-[#b8b5c9] hover:border-[#8d86f5] hover:text-[#6f68e8]'
-                              }`}
-                            >
-                              ✓
-                            </button>
+                            {readOnly ? (
+                              <span
+                                aria-hidden="true"
+                                className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[10px] ${
+                                  done
+                                    ? 'border-[#ccecdd] bg-[#e8f8f0] text-[#3f9f7f]'
+                                    : 'border-[#e4e0f0] bg-white text-[#b8b5c9]'
+                                }`}
+                              >
+                                ✓
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void planner.setPlanStatus(
+                                    plan.id,
+                                    done ? 'planned' : 'completed',
+                                  )
+                                }
+                                aria-label={done ? '완료 취소' : '완료 표시'}
+                                className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[10px] transition ${
+                                  done
+                                    ? 'border-[#ccecdd] bg-[#e8f8f0] text-[#3f9f7f]'
+                                    : 'border-[#e4e0f0] bg-white text-[#b8b5c9] hover:border-[#8d86f5] hover:text-[#6f68e8]'
+                                }`}
+                              >
+                                ✓
+                              </button>
+                            )}
                           </div>
                           <div
                             className={`mt-0.5 text-xs leading-snug font-extrabold ${

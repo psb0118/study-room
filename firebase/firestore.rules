@@ -4,7 +4,7 @@ rules_version = '2';
 // - 학생은 자기 프로필과 플래너 데이터만 수정할 수 있다.
 // - 부모는 6자리 가족 코드로 연결된 자녀의 프로필/계획을 읽고,
 //   계획을 추가·삭제·완료 취소할 수 있다.
-// - 관리자는 사용자 프로필의 이용 상태 필드만 변경할 수 있다.
+// - 관리자는 사용자 프로필의 이용 상태 필드만 변경할 수 있고, 학생 플래너는 읽기만 할 수 있다.
 // - 정지된 계정은 프로필을 읽을 수 있지만, 학습 데이터 접근과 수정은 차단된다.
 // - 포인트 순위(leaderboard)는 로그인한 사용자에게 공개되는 요약 정보만 담는다.
 // - 주간 리그(weeklyLeaderboards)는 주차별 하위 컬렉션으로 분리해 공개한다.
@@ -80,17 +80,20 @@ service cloud.firestore {
       allow delete: if isSelf(uid) && isAccountActive();
 
       // planner: subjects / plans / records
+      // 관리자는 학생 플래너를 읽기 전용으로 확인할 수 있다.
+      // 계획 쓰기는 학생과 연결된 부모가, 과목·기록 쓰기는 학생 본인만 가능하다.
       match /plans/{planId} {
-        allow read, write: if canReadStudentData(uid) && isAccountActive();
+        allow read: if (canReadStudentData(uid) || isAdmin()) && isAccountActive();
+        allow write: if canReadStudentData(uid) && isAccountActive();
       }
 
       match /subjects/{subjectId} {
-        allow read: if canReadStudentData(uid) && isAccountActive();
+        allow read: if (canReadStudentData(uid) || isAdmin()) && isAccountActive();
         allow write: if isSelf(uid) && isAccountActive();
       }
 
       match /records/{recordId} {
-        allow read: if canReadStudentData(uid) && isAccountActive();
+        allow read: if (canReadStudentData(uid) || isAdmin()) && isAccountActive();
         allow write: if isSelf(uid) && isAccountActive();
       }
 

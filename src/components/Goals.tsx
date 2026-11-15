@@ -30,11 +30,13 @@ export function Goals({
   profileApi,
   planner,
   preview = false,
+  readOnly = false,
 }: {
   profile: UserProfile
   profileApi: ProfileApi
   planner: PlannerApi
   preview?: boolean
+  readOnly?: boolean
 }) {
   const activeSubjects = planner.subjects.filter((subject) => !subject.archived)
   const [form, setForm] = useState<Record<string, string>>({})
@@ -51,6 +53,7 @@ export function Goals({
     form[subjectId] ?? String(profile.weeklyGoals[subjectId] ?? '')
 
   const save = async () => {
+    if (readOnly) return
     setError(null)
     setNotice(null)
     const goals: Record<string, number> = {}
@@ -84,14 +87,16 @@ export function Goals({
         title="주간 목표"
         description="과목별로 이번 주에 공부할 시간을 정하고, 실제 기록과 비교해 보세요."
         action={
-          <button
-            type="button"
-            onClick={() => void save()}
-            disabled={busy || activeSubjects.length === 0}
-            className={primaryButton}
-          >
-            {busy ? '저장 중…' : '목표 저장'}
-          </button>
+          readOnly ? undefined : (
+            <button
+              type="button"
+              onClick={() => void save()}
+              disabled={busy || activeSubjects.length === 0}
+              className={primaryButton}
+            >
+              {busy ? '저장 중…' : '목표 저장'}
+            </button>
+          )
         }
       />
 
@@ -136,6 +141,7 @@ export function Goals({
                     max={MAX_WEEKLY_GOAL_MINUTES}
                     step={10}
                     value={valueFor(subject.id)}
+                    disabled={readOnly}
                     onChange={(event) => {
                       setForm((prev) => ({
                         ...prev,
@@ -207,13 +213,13 @@ export function Goals({
         </section>
       )}
 
-      {preview ? (
+      {preview || readOnly ? (
         <section className={`${panelClass} mt-4 p-6`}>
           <h2 className="text-base font-extrabold text-[#3d3a55]">
             알림 설정
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-[#8b88a3]">
-            관리자 미리보기에서는 실제 브라우저 알림을 켜거나 기기를 등록할 수
+            관리자 화면에서는 실제 브라우저 알림을 켜거나 기기를 등록할 수
             없어요. 학습 알림과 일정 시작 알림은 학생 계정에서 확인해 주세요.
           </p>
         </section>

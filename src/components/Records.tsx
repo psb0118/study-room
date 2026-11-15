@@ -26,9 +26,14 @@ import {
 interface RecordsProps {
   planner: PlannerApi
   onNavigate: (view: View) => void
+  readOnly?: boolean
 }
 
-export function Records({ planner, onNavigate }: RecordsProps) {
+export function Records({
+  planner,
+  onNavigate,
+  readOnly = false,
+}: RecordsProps) {
   const [period, setPeriod] = useState<Period>('week')
   const [subjectId, setSubjectId] = useState('all')
   const [query, setQuery] = useState('')
@@ -67,9 +72,11 @@ export function Records({ planner, onNavigate }: RecordsProps) {
         title="공부 기록"
         description="스터디 룸 집중과 직접 기록이 이곳에 쌓이고, 통계의 원본이 됩니다."
         action={
-          <button type="button" onClick={openModal} className={primaryButton}>
-            ＋ 직접 기록
-          </button>
+          readOnly ? undefined : (
+            <button type="button" onClick={openModal} className={primaryButton}>
+              ＋ 직접 기록
+            </button>
+          )
         }
       />
 
@@ -156,22 +163,24 @@ export function Records({ planner, onNavigate }: RecordsProps) {
                 <span className="text-sm font-extrabold text-[#7c74f0]">
                   {formatDuration(record.durationMs)}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        '이 공부 기록을 삭제할까요? 통계도 다시 계산됩니다.',
-                      )
-                    ) {
-                      void planner.deleteRecord(record.id)
-                    }
-                  }}
-                  aria-label="기록 삭제"
-                  className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
-                >
-                  ⌫
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          '이 공부 기록을 삭제할까요? 통계도 다시 계산됩니다.',
+                        )
+                      ) {
+                        void planner.deleteRecord(record.id)
+                      }
+                    }}
+                    aria-label="기록 삭제"
+                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
+                  >
+                    ⌫
+                  </button>
+                )}
               </article>
             )
           })}
@@ -183,28 +192,30 @@ export function Records({ planner, onNavigate }: RecordsProps) {
             title="아직 공부 기록이 없어요"
             description="스터디 룸에서 집중하거나 직접 기록을 추가해 보세요."
             action={
-              <div className="flex flex-wrap justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onNavigate('rooms')}
-                  className={ghostButton}
-                >
-                  스터디 룸 가기
-                </button>
-                <button
-                  type="button"
-                  onClick={openModal}
-                  className={primaryButton}
-                >
-                  직접 기록 추가
-                </button>
-              </div>
+              readOnly ? undefined : (
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('rooms')}
+                    className={ghostButton}
+                  >
+                    스터디 룸 가기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openModal}
+                    className={primaryButton}
+                  >
+                    직접 기록 추가
+                  </button>
+                </div>
+              )
             }
           />
         </div>
       )}
 
-      {modal && (
+      {!readOnly && modal && (
         <RecordModal planner={planner} onClose={() => setModal(false)} />
       )}
     </div>

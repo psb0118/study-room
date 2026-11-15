@@ -58,9 +58,15 @@ interface PlansProps {
   planner: PlannerApi
   onNavigate: (view: View) => void
   role?: Role
+  readOnly?: boolean
 }
 
-export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
+export function Plans({
+  planner,
+  onNavigate,
+  role = 'student',
+  readOnly = false,
+}: PlansProps) {
   const [filters, setFilters] = useState<PlanFilters>({
     period: 'all',
     subjectId: 'all',
@@ -178,19 +184,21 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
                 과목 관리
               </button>
             )}
-            <button
-              type="button"
-              onClick={openNew}
-              disabled={isParent && activeSubjects.length === 0}
-              title={
-                isParent && activeSubjects.length === 0
-                  ? '자녀가 과목을 먼저 추가해야 해요.'
-                  : undefined
-              }
-              className={primaryButton}
-            >
-              ＋ 계획 추가
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={openNew}
+                disabled={isParent && activeSubjects.length === 0}
+                title={
+                  isParent && activeSubjects.length === 0
+                    ? '자녀가 과목을 먼저 추가해야 해요.'
+                    : undefined
+                }
+                className={primaryButton}
+              >
+                ＋ 계획 추가
+              </button>
+            )}
           </div>
         }
       />
@@ -202,7 +210,7 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
               ? '자녀가 과목을 추가하면 일정을 만들 수 있어요.'
               : '계획을 만들려면 먼저 과목이 필요해요.'}
           </span>
-          {!isParent && (
+          {!isParent && !readOnly && (
             <button
               type="button"
               onClick={() => onNavigate('subjects')}
@@ -214,7 +222,7 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
         </div>
       )}
 
-      {activeSubjects.length > 0 && (
+      {activeSubjects.length > 0 && !readOnly && (
         <section
           className={`${panelClass} mb-4 flex flex-wrap items-center gap-2 p-4`}
         >
@@ -241,14 +249,16 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
             <strong className="font-extrabold">{overdue.length}개</strong>의
             밀린 계획이 있어요. 오늘로 옮겨 다시 시작해 보세요.
           </span>
-          <button
-            type="button"
-            onClick={() => void moveAllToToday()}
-            disabled={rescheduleBusy}
-            className={ghostButton}
-          >
-            {rescheduleBusy ? '이동 중…' : '모두 오늘로'}
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => void moveAllToToday()}
+              disabled={rescheduleBusy}
+              className={ghostButton}
+            >
+              {rescheduleBusy ? '이동 중…' : '모두 오늘로'}
+            </button>
+          )}
         </section>
       )}
 
@@ -383,7 +393,7 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
                   )}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                  {!isParent && (
+                  {!isParent && !readOnly && (
                     <button
                       type="button"
                       onClick={() => setFocusPlan(plan)}
@@ -392,55 +402,63 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
                       집중
                     </button>
                   )}
-                  {plan.plannedDate < today && plan.status !== 'completed' && (
-                    <button
-                      type="button"
-                      onClick={() => void moveToToday(plan)}
-                      disabled={rescheduleBusy}
-                      className="rounded-md border border-[#f2e0bd] bg-[#fff9ec] px-2 py-1 text-[11px] font-extrabold text-[#9a7b4f] transition hover:border-[#e6c58f] hover:bg-[#fff4df]"
-                    >
-                      오늘로
-                    </button>
-                  )}
-                  <select
-                    value={plan.status}
-                    onChange={(e) =>
-                      void planner.setPlanStatus(
-                        plan.id,
-                        e.target.value as PlanStatus,
-                      )
-                    }
-                    aria-label={`${plan.title} 상태`}
-                    className="rounded-md border border-[#e4e0f0] bg-white px-2 py-1.5 text-xs font-medium text-[#5f5c78] outline-none focus:border-[#7d8af0]"
-                  >
-                    <option value="planned">예정</option>
-                    <option value="in_progress">진행 중</option>
-                    <option value="completed">완료</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setModal(plan)}
-                    aria-label="계획 수정"
-                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#77748f] transition hover:bg-[#f1eeff] hover:text-[#7c74f0]"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `“${plan.title}” 계획을 삭제할까요? 되돌릴 수 없어요.`,
+                  {!readOnly &&
+                    plan.plannedDate < today &&
+                    plan.status !== 'completed' && (
+                      <button
+                        type="button"
+                        onClick={() => void moveToToday(plan)}
+                        disabled={rescheduleBusy}
+                        className="rounded-md border border-[#f2e0bd] bg-[#fff9ec] px-2 py-1 text-[11px] font-extrabold text-[#9a7b4f] transition hover:border-[#e6c58f] hover:bg-[#fff4df]"
+                      >
+                        오늘로
+                      </button>
+                    )}
+                  {!readOnly && (
+                    <select
+                      value={plan.status}
+                      onChange={(e) =>
+                        void planner.setPlanStatus(
+                          plan.id,
+                          e.target.value as PlanStatus,
                         )
-                      ) {
-                        void planner.deletePlan(plan.id)
                       }
-                    }}
-                    aria-label="계획 삭제"
-                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
-                  >
-                    ⌫
-                  </button>
+                      aria-label={`${plan.title} 상태`}
+                      className="rounded-md border border-[#e4e0f0] bg-white px-2 py-1.5 text-xs font-medium text-[#5f5c78] outline-none focus:border-[#7d8af0]"
+                    >
+                      <option value="planned">예정</option>
+                      <option value="in_progress">진행 중</option>
+                      <option value="completed">완료</option>
+                    </select>
+                  )}
+                  {!readOnly && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModal(plan)}
+                        aria-label="계획 수정"
+                        className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#77748f] transition hover:bg-[#f1eeff] hover:text-[#7c74f0]"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `“${plan.title}” 계획을 삭제할까요? 되돌릴 수 없어요.`,
+                            )
+                          ) {
+                            void planner.deletePlan(plan.id)
+                          }
+                        }}
+                        aria-label="계획 삭제"
+                        className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
+                      >
+                        ⌫
+                      </button>
+                    </>
+                  )}
                 </div>
               </article>
             )
@@ -452,16 +470,18 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
               title="조건에 맞는 계획이 없어요"
               description="필터를 바꾸거나 새로운 계획을 추가해 보세요."
               action={
-                <button type="button" onClick={openNew} className={primaryButton}>
-                  계획 추가
-                </button>
+                readOnly ? undefined : (
+                  <button type="button" onClick={openNew} className={primaryButton}>
+                    계획 추가
+                  </button>
+                )
               }
             />
           </div>
         )}
       </section>
 
-      {modal !== null && (
+      {!readOnly && modal !== null && (
         <PlanModal
           plan={modal === 'new' ? null : modal}
           planner={planner}
@@ -469,7 +489,7 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
           onClose={() => setModal(null)}
         />
       )}
-      {focusPlan && (
+      {!readOnly && focusPlan && (
         <FocusTimer
           key={focusPlan.id}
           plan={focusPlan}

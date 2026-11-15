@@ -15,9 +15,10 @@ import {
 
 interface SubjectsProps {
   planner: PlannerApi
+  readOnly?: boolean
 }
 
-export function Subjects({ planner }: SubjectsProps) {
+export function Subjects({ planner, readOnly = false }: SubjectsProps) {
   const [modal, setModal] = useState<'new' | Subject | null>(null)
   const totals = subjectTotals(planner.records)
 
@@ -28,13 +29,15 @@ export function Subjects({ planner }: SubjectsProps) {
         title="과목 관리"
         description="색상으로 구분해 계획과 공부 기록을 더 쉽게 살펴보세요."
         action={
-          <button
-            type="button"
-            onClick={() => setModal('new')}
-            className={primaryButton}
-          >
-            ＋ 과목 추가
-          </button>
+          !readOnly ? (
+            <button
+              type="button"
+              onClick={() => setModal('new')}
+              className={primaryButton}
+            >
+              ＋ 과목 추가
+            </button>
+          ) : undefined
         }
       />
 
@@ -52,45 +55,47 @@ export function Subjects({ planner }: SubjectsProps) {
                     {subject.name}
                   </h2>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setModal(subject)}
-                    aria-label={`${subject.name} 수정`}
-                    className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#77748f] transition hover:bg-[#f1eeff] hover:text-[#7c74f0]"
-                  >
-                    ✎
-                  </button>
-                  {subject.archived ? (
+                {!readOnly && (
+                  <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
-                      onClick={() =>
-                        void planner.setSubjectArchived(subject.id, false)
-                      }
-                      aria-label="과목 복원"
-                      className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#4faa83] transition hover:bg-[#e8f8f0]"
+                      onClick={() => setModal(subject)}
+                      aria-label={`${subject.name} 수정`}
+                      className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#77748f] transition hover:bg-[#f1eeff] hover:text-[#7c74f0]"
                     >
-                      ↶
+                      ✎
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            '과목을 보관할까요? 기존 계획과 공부 기록은 그대로 유지됩니다.',
-                          )
-                        ) {
-                          void planner.setSubjectArchived(subject.id, true)
+                    {subject.archived ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void planner.setSubjectArchived(subject.id, false)
                         }
-                      }}
-                      aria-label="과목 보관"
-                      className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
-                    >
-                      ⌫
-                    </button>
-                  )}
-                </div>
+                        aria-label="과목 복원"
+                        className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#4faa83] transition hover:bg-[#e8f8f0]"
+                      >
+                        ↶
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              '과목을 보관할까요? 기존 계획과 공부 기록은 그대로 유지됩니다.',
+                            )
+                          ) {
+                            void planner.setSubjectArchived(subject.id, true)
+                          }
+                        }}
+                        aria-label="과목 보관"
+                        className="grid h-8 w-8 place-items-center rounded-md bg-[#f7f4ff] text-[#d96a7c] transition hover:bg-[#ffeff3]"
+                      >
+                        ⌫
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               <p className="mt-2 text-xs text-[#a8a5bb]">
                 {subject.archived
@@ -111,19 +116,21 @@ export function Subjects({ planner }: SubjectsProps) {
             title="아직 과목이 없어요"
             description="과목을 만들면 계획과 기록을 더 깔끔하게 정리할 수 있어요."
             action={
-              <button
-                type="button"
-                onClick={() => setModal('new')}
-                className={primaryButton}
-              >
-                과목 추가
-              </button>
+              readOnly ? undefined : (
+                <button
+                  type="button"
+                  onClick={() => setModal('new')}
+                  className={primaryButton}
+                >
+                  과목 추가
+                </button>
+              )
             }
           />
         </div>
       )}
 
-      {modal !== null && (
+      {!readOnly && modal !== null && (
         <SubjectModal
           subject={modal === 'new' ? null : modal}
           planner={planner}
