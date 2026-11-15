@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import type { PlannerApi } from '../hooks/usePlanner'
 import {
   PERIOD_LABEL,
@@ -69,6 +69,8 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
   const [modal, setModal] = useState<'new' | StudyPlan | null>(null)
   const [focusPlan, setFocusPlan] = useState<StudyPlan | null>(null)
   const [rescheduleBusy, setRescheduleBusy] = useState(false)
+  const [templateBusy, setTemplateBusy] = useState(false)
+  const templateBusyRef = useRef(false)
   const [query, setQuery] = useState('')
   const isParent = role === 'parent'
   const today = todayKey()
@@ -87,15 +89,23 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
   )
 
   const addTemplate = async (template: (typeof QUICK_TEMPLATES)[number]) => {
+    if (templateBusyRef.current) return
     const subject =
       activeSubjects.find((item) => item.name === template.subjectName) ??
       activeSubjects[0]
     if (!subject) return
-    await planner.savePlan({
-      ...emptyPlanInput([subject]),
-      title: template.title,
-      targetMinutes: template.minutes,
-    })
+    templateBusyRef.current = true
+    setTemplateBusy(true)
+    try {
+      await planner.savePlan({
+        ...emptyPlanInput([subject]),
+        title: template.title,
+        targetMinutes: template.minutes,
+      })
+    } finally {
+      templateBusyRef.current = false
+      setTemplateBusy(false)
+    }
   }
 
   const openNew = () => {
@@ -216,7 +226,8 @@ export function Plans({ planner, onNavigate, role = 'student' }: PlansProps) {
               key={template.title}
               type="button"
               onClick={() => void addTemplate(template)}
-              className="rounded-lg border border-[#f1eef9] bg-white px-2.5 py-1.5 text-xs font-bold text-[#706d8a] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff] hover:text-[#6f68e8]"
+              disabled={templateBusy}
+              className="rounded-lg border border-[#f1eef9] bg-white px-2.5 py-1.5 text-xs font-bold text-[#706d8a] transition hover:border-[#d8d3e8] hover:bg-[#fbf9ff] hover:text-[#6f68e8] disabled:cursor-not-allowed disabled:opacity-60"
             >
               + {template.title}
             </button>

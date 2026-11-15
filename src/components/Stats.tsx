@@ -54,7 +54,7 @@ export function Stats({ planner }: { planner: PlannerApi }) {
     .filter(
       (plan) =>
         plan.plannedDate >= report.start &&
-        plan.plannedDate <= today &&
+        plan.plannedDate < today &&
         plan.status !== 'completed',
     )
     .sort((a, b) =>

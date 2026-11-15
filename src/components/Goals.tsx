@@ -226,7 +226,7 @@ function ReminderSettings({
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const configured = isPushConfigured()
-  const background = configured && pushEnabled
+  const background = configured && pushEnabled && enabled
   const permission =
     typeof window !== 'undefined' && 'Notification' in window
       ? Notification.permission
@@ -317,17 +317,24 @@ function ReminderSettings({
     setError(null)
     setNotice(null)
     setBusy(true)
-    await removePushToken(profile.uid)
+    // 일정 시작 알림이 켜져 있으면 같은 FCM 기기를 계속 사용한다.
+    const keepPushForPlans = profile.planReminderEnabled
     const ok = await profileApi.savePreferences({
       reminderEnabled: false,
-      pushEnabled: false,
-      planReminderEnabled: false,
+      ...(keepPushForPlans ? {} : { pushEnabled: false }),
     })
+    if (ok && !keepPushForPlans) {
+      await removePushToken(profile.uid)
+    }
     setBusy(false)
     if (ok) {
       setEnabled(false)
-      setPushEnabled(false)
-      setNotice('학습 알림을 껐어요.')
+      if (!keepPushForPlans) setPushEnabled(false)
+      setNotice(
+        keepPushForPlans
+          ? '학습 알림을 껐어요. 일정 시작 알림은 그대로 유지돼요.'
+          : '학습 알림을 껐어요.',
+      )
     }
   }
 
@@ -427,18 +434,20 @@ function ReminderSettings({
                 {busy ? '저장 중…' : '알림 끄기'}
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => void enable()}
-              disabled={busy || (configured && !supported)}
-              className={primaryButton}
-            >
-              {busy
-                ? '저장 중…'
-                : configured
-                  ? '백그라운드 알림 켜기'
-                  : '로컬 알림 켜기'}
-            </button>
+            {(!enabled || (configured && !pushEnabled)) && (
+              <button
+                type="button"
+                onClick={() => void enable()}
+                disabled={busy || (configured && !supported)}
+                className={primaryButton}
+              >
+                {busy
+                  ? '저장 중…'
+                  : configured
+                    ? '백그라운드 알림 켜기'
+                    : '로컬 알림 켜기'}
+              </button>
+            )}
             {enabled && (
               <button
                 type="button"
@@ -570,9 +579,10 @@ function PlanReminderSettings({
     }
 
     setBusy(true)
-    let registeredHere = false
+    const hadPush = profile.pushEnabled
     try {
-      if (!profile.pushEnabled) {
+      // 권한이 취소된 경우에도 다시 확인한다.
+      if (Notification.permission !== 'granted') {
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') {
           setError(
@@ -580,22 +590,23 @@ function PlanReminderSettings({
           )
           return
         }
-        const registered = await registerPushToken(profile.uid)
-        if (!registered.ok) {
-          setError(registered.error ?? '기기 등록에 실패했어요.')
-          return
-        }
-        registeredHere = true
+      }
+
+      // 토큰이 만료됐거나 브라우저 저장소가 지워진 경우에도 다시 등록한다.
+      const registered = await registerPushToken(profile.uid)
+      if (!registered.ok) {
+        setError(registered.error ?? '기기 등록에 실패했어요.')
+        return
       }
 
       const ok = await profileApi.savePreferences({
         planReminderEnabled: true,
         planReminderOffsetMinutes: offset,
         reminderTimezone: timezone,
-        ...(registeredHere ? { pushEnabled: true } : {}),
+        pushEnabled: true,
       })
       if (!ok) {
-        if (registeredHere) await removePushToken(profile.uid)
+        if (!hadPush) await removePushToken(profile.uid)
         return
       }
       setNotice('공부 일정 시작 알림을 켰어요.')
@@ -696,14 +707,18 @@ function PlanReminderSettings({
           </select>
         </label>
 
-        {configured && enabled && !profile.pushEnabled && (
+        {configured && enabled && (
           <button
             type="button"
             onClick={() => void enable()}
             disabled={busy || !supported}
             className={ghostButton}
           >
-            {busy ? '등록 중…' : '기기 등록'}
+            {busy
+              ? '등록 중…'
+              : profile.pushEnabled
+                ? '기기 다시 등록'
+                : '기기 등록'}
           </button>
         )}
       </div>

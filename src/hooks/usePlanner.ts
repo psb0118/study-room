@@ -212,31 +212,40 @@ export function usePlanner(uid: string) {
     name: string
     color: string
   }) =>
-    run(async () => {
-      const name = input.name.trim()
-      if (!name) throw new Error('과목명을 입력해 주세요.')
-      const now = Date.now()
-      if (input.id) {
-        await updateDoc(doc(subjectsCol, input.id), {
-          name,
-          color: input.color,
-          updatedAt: now,
-        })
-      } else {
-        await setDoc(doc(subjectsCol), {
-          name,
-          color: input.color,
-          archived: false,
-          createdAt: now,
-          updatedAt: now,
-        })
-      }
-    })
+    run(
+      async () => {
+        const name = input.name.trim()
+        if (!name) throw new Error('과목명을 입력해 주세요.')
+        const now = Date.now()
+        if (input.id) {
+          await updateDoc(doc(subjectsCol, input.id), {
+            name,
+            color: input.color,
+            updatedAt: now,
+          })
+        } else {
+          await setDoc(doc(subjectsCol), {
+            name,
+            color: input.color,
+            archived: false,
+            createdAt: now,
+            updatedAt: now,
+          })
+        }
+      },
+      { optimisticOffline: true },
+    )
 
   const setSubjectArchived = async (id: string, archived: boolean) =>
-    run(async () => {
-      await updateDoc(doc(subjectsCol, id), { archived, updatedAt: Date.now() })
-    })
+    run(
+      async () => {
+        await updateDoc(doc(subjectsCol, id), {
+          archived,
+          updatedAt: Date.now(),
+        })
+      },
+      { optimisticOffline: true },
+    )
 
   const savePlan = async (input: PlanInput & { id?: string }) => {
     const { id, ...rest } = input

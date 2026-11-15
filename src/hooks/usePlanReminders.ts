@@ -6,13 +6,14 @@ import { dateKey } from '../lib/streak'
 import type { StudyPlan, UserProfile } from '../types'
 
 const LOCAL_PLAN_NOTICE_WINDOW_MS = 5 * 60_000
-const SESSION_PREFIX = 'haru-gyeol-plan-notice:'
+const NOTICE_PREFIX = 'haru-gyeol-plan-notice:'
 
-function sessionKey(
+function noticeKey(
+  uid: string,
   plan: StudyPlan,
   offsetMinutes: number,
 ): string {
-  return `${SESSION_PREFIX}${plan.id}:${plan.plannedDate}:${plan.startTime}:${offsetMinutes}`
+  return `${NOTICE_PREFIX}${uid}:${plan.id}:${plan.plannedDate}:${plan.startTime}:${offsetMinutes}`
 }
 
 /**
@@ -50,25 +51,27 @@ export function usePlanReminders(
       if (delay < -LOCAL_PLAN_NOTICE_WINDOW_MS) continue
       if (delay > 2_147_000_000) continue
 
-      const key = sessionKey(plan, offset)
+      const key = noticeKey(profile.uid, plan, offset)
       if (shown.current.has(key)) continue
       try {
-        if (sessionStorage.getItem(key)) {
+        // localStorage를 쓰면 같은 계정을 여러 탭에서 열어도 중복 알림을 줄일 수 있다.
+        if (localStorage.getItem(key)) {
           shown.current.add(key)
           continue
         }
       } catch {
-        // 저장소를 읽을 수 없으면 현재 세션의 shown만 사용한다.
+        // 저장소를 읽을 수 없으면 현재 탭의 shown만 사용한다.
       }
 
       const timer = window.setTimeout(() => {
         if (shown.current.has(key)) return
-        shown.current.add(key)
         try {
-          sessionStorage.setItem(key, '1')
+          if (localStorage.getItem(key)) return
+          localStorage.setItem(key, '1')
         } catch {
-          // 저장소를 쓸 수 없어도 현재 앱 세션에서는 shown으로 중복을 막는다.
+          // 저장소를 쓸 수 없어도 현재 탭의 shown으로 중복을 막는다.
         }
+        shown.current.add(key)
         const prefix = offset > 0 ? `${offset}분 뒤 ` : ''
         void showBrowserNotification(
           '하루결 공부 알림',
@@ -83,6 +86,7 @@ export function usePlanReminders(
     }
   }, [
     plans,
+    profile.uid,
     profile.planReminderEnabled,
     profile.planReminderOffsetMinutes,
     profile.pushEnabled,
