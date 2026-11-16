@@ -13,6 +13,7 @@ import {
   weeklyReport,
   withinPeriod,
 } from './planner'
+import { addDays } from './streak'
 
 const subject = (id: string, archived = false): Subject => ({
   id,
@@ -128,11 +129,12 @@ describe('planner stats', () => {
 
 describe('plan filters', () => {
   it('기간·과목·상태로 거른다', () => {
+    const weekDate = addDays(startOfWeek(), 2)
     const plans = [
-      plan('a'),
-      plan('b', { subjectId: 's2' }),
-      plan('c', { status: 'completed' }),
-      plan('d', { plannedDate: '2026-10-01' }),
+      plan('a', { plannedDate: weekDate }),
+      plan('b', { subjectId: 's2', plannedDate: weekDate }),
+      plan('c', { plannedDate: weekDate, status: 'completed' }),
+      plan('d', { plannedDate: '2000-01-01' }),
     ]
     expect(
       filterPlans(plans, { period: 'week', subjectId: 's1', status: 'all' }).map(
