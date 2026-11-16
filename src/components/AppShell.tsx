@@ -10,7 +10,9 @@ export type View =
   | 'plans'
   | 'subjects'
   | 'records'
+  | 'journal'
   | 'goals'
+  | 'exams'
   | 'stats'
   | 'schedule'
   | 'leaderboard'
@@ -22,7 +24,9 @@ const STUDENT_NAV: { id: View; icon: string; label: string }[] = [
   { id: 'plans', icon: '▣', label: '공부 계획' },
   { id: 'subjects', icon: '●', label: '과목 관리' },
   { id: 'records', icon: '▤', label: '공부 기록' },
+  { id: 'journal', icon: '✎', label: '회고 일지' },
   { id: 'goals', icon: '◎', label: '주간 목표' },
+  { id: 'exams', icon: '◇', label: '시험' },
   { id: 'stats', icon: '▥', label: '통계' },
   { id: 'schedule', icon: '▦', label: '시간표' },
   { id: 'leaderboard', icon: '★', label: '포인트 순위' },
@@ -32,6 +36,8 @@ const STUDENT_NAV: { id: View; icon: string; label: string }[] = [
 const PARENT_NAV: { id: View; icon: string; label: string }[] = [
   { id: 'home', icon: '◒', label: '자녀 현황' },
   { id: 'plans', icon: '▣', label: '일정 관리' },
+  { id: 'exams', icon: '◇', label: '시험' },
+  { id: 'journal', icon: '✎', label: '회고 일지' },
   { id: 'schedule', icon: '▦', label: '시간표' },
   { id: 'stats', icon: '▥', label: '통계' },
   { id: 'leaderboard', icon: '★', label: '포인트 순위' },
@@ -42,8 +48,24 @@ const ADMIN_NAV: { id: View; icon: string; label: string }[] = [
   { id: 'home', icon: '⚙', label: '관리자' },
 ]
 
-const STUDENT_MOBILE = ['home', 'plans', 'rooms', 'leaderboard', 'family']
-const PARENT_MOBILE = ['home', 'plans', 'stats', 'leaderboard', 'family']
+const STUDENT_MOBILE = [
+  'home',
+  'plans',
+  'rooms',
+  'exams',
+  'journal',
+  'leaderboard',
+  'family',
+]
+const PARENT_MOBILE = [
+  'home',
+  'plans',
+  'exams',
+  'journal',
+  'stats',
+  'leaderboard',
+  'family',
+]
 const ADMIN_MOBILE = ['home']
 
 interface AppShellProps {
@@ -72,8 +94,13 @@ export function AppShell({
   readOnlyPreview = false,
   children,
 }: AppShellProps) {
-  const nav =
+  const baseNav =
     role === 'parent' ? PARENT_NAV : role === 'admin' ? ADMIN_NAV : STUDENT_NAV
+  // 데모 미리보기는 실제 시험·회고 데이터가 없으므로 해당 메뉴를 숨긴다.
+  const nav =
+    preview && !readOnlyPreview
+      ? baseNav.filter((item) => item.id !== 'exams' && item.id !== 'journal')
+      : baseNav
   const mobileIds =
     role === 'parent'
       ? PARENT_MOBILE
@@ -93,7 +120,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-transparent lg:flex">
-      <aside className="sticky top-0 hidden h-screen w-[252px] shrink-0 flex-col border-r border-[#ece8f7] bg-white/90 px-4 py-[27px] backdrop-blur-xl lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-[252px] shrink-0 flex-col overflow-y-auto border-r border-[#ece8f7] bg-white/90 px-4 py-[27px] backdrop-blur-xl lg:flex">
         <div className="mb-7 flex items-center gap-2.5 px-2.5">
           <span className="grid h-[34px] w-[34px] place-items-center rounded-[11px] bg-gradient-to-br from-[#b9b4ff] to-[#8d86f5] text-lg text-white shadow-[0_7px_15px_rgba(141,134,245,0.3)]">
             ⌁
@@ -201,9 +228,10 @@ export function AppShell({
       </div>
 
       <nav
-        className={`fixed inset-x-0 bottom-0 z-30 grid border-t border-[#ece8f7] bg-white/95 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(61,58,85,0.05)] backdrop-blur-xl lg:hidden ${
-          role === 'admin' ? 'grid-cols-1' : 'grid-cols-5'
-        }`}
+        className="fixed inset-x-0 bottom-0 z-30 grid border-t border-[#ece8f7] bg-white/95 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(61,58,85,0.05)] backdrop-blur-xl lg:hidden"
+        style={{
+          gridTemplateColumns: `repeat(${Math.max(1, mobileNav.length)}, minmax(0, 1fr))`,
+        }}
       >
         {mobileNav.map((item) => (
           <button

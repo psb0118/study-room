@@ -74,6 +74,8 @@ async function deleteAccountData(
     'subjects',
     'plans',
     'records',
+    'exams',
+    'reflections',
     'devices',
     'planReminderDeliveries',
   ]) {

@@ -97,6 +97,18 @@ service cloud.firestore {
         allow write: if isSelf(uid) && isAccountActive();
       }
 
+      // 시험 D-Day 일정. 학생은 본인 것만 쓰고, 연결된 부모와 관리자는 읽는다.
+      match /exams/{examId} {
+        allow read: if (canReadStudentData(uid) || isAdmin()) && isAccountActive();
+        allow write: if isSelf(uid) && isAccountActive();
+      }
+
+      // 날짜별 하루 회고. 학생은 본인 것만 쓰고, 연결된 부모와 관리자는 읽는다.
+      match /reflections/{dateKey} {
+        allow read: if (canReadStudentData(uid) || isAdmin()) && isAccountActive();
+        allow write: if isSelf(uid) && isAccountActive();
+      }
+
       // FCM 웹 푸시 기기 토큰. 본인만 등록·삭제할 수 있고 부모/관리자는 읽지 않는다.
       match /devices/{deviceId} {
         allow read: if isSelf(uid);

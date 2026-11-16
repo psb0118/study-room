@@ -184,3 +184,32 @@ export interface StudyRecord {
   /** 스터디 룸 기록의 분 단위 중복 집계 방지용 */
   lastMinuteKey?: number
 }
+
+/** 학생이 등록한 시험 일정. 날짜는 YYYY-MM-DD 로컬 기준이다. */
+export interface Exam {
+  id: string
+  title: string
+  subjectId: string
+  examDate: string
+  /** HH:mm, 미정이면 빈 문자열 */
+  startTime: string
+  memo: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ExamInput {
+  title: string
+  subjectId: string
+  examDate: string
+  startTime: string
+  memo: string
+}
+
+/** 날짜별 하루 회고. Firestore 문서 id가 dateKey다. */
+export interface StudyReflection {
+  dateKey: string
+  content: string
+  createdAt: number
+  updatedAt: number
+}

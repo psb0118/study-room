@@ -6,14 +6,32 @@ import {
   MAX_STATUS_REASON_LENGTH,
 } from '../lib/accountStatus'
 import { ADMIN_EMAIL, isAdminEmail } from '../lib/admin'
+import {
+  filterAdminUsers,
+  type AdminSort,
+} from '../lib/adminDirectory'
 import { csvFileName, downloadText, toCsv } from '../lib/csv'
 import type { AccountStatus, UserProfile } from '../types'
 import { Avatar } from './Avatar'
-import { PageHeader, StatCard, panelClass } from './ui'
+import {
+  Field,
+  PageHeader,
+  StatCard,
+  ghostButton,
+  inputClass,
+  panelClass,
+} from './ui'
 
 const ROLE_LABEL: Record<string, string> = {
   student: '학생',
   parent: '부모',
+}
+
+const SORT_LABEL: Record<AdminSort, string> = {
+  recent: '최신 가입순',
+  name: '이름순',
+  role: '역할순',
+  status: '상태순',
 }
 
 type StatusFilter = 'all' | AccountStatus
@@ -51,6 +69,8 @@ export function AdminDashboard({
     setAccountStatus,
   } = useAdminUsers()
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<AdminSort>('recent')
   const [suspendTarget, setSuspendTarget] = useState<UserProfile | null>(null)
   const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState('')
@@ -64,10 +84,13 @@ export function AdminDashboard({
     (user) => user.accountStatus === 'active',
   ).length
   const suspendedCount = users.length - activeCount
-  const visibleUsers =
-    statusFilter === 'all'
-      ? users
-      : users.filter((user) => user.accountStatus === statusFilter)
+  const normalizedQuery = query.trim().toLowerCase()
+  const visibleUsers = filterAdminUsers(users, {
+    status: statusFilter,
+    query,
+    sort,
+  })
+  const narrowed = statusFilter !== 'all' || normalizedQuery.length > 0
   const filters: { id: StatusFilter; label: string; count: number }[] = [
     { id: 'all', label: '전체', count: users.length },
     { id: 'active', label: '이용 중', count: activeCount },
@@ -174,9 +197,9 @@ export function AdminDashboard({
           <span className="inline-flex rounded-full bg-[#f1eeff] px-2.5 py-1 text-[11px] font-extrabold text-[#6f68e8]">
             {loading
               ? '불러오는 중…'
-              : statusFilter === 'all'
-                ? `${users.length}명`
-                : `${visibleUsers.length}/${users.length}명`}
+              : narrowed
+                ? `${visibleUsers.length}/${users.length}명`
+                : `${users.length}명`}
           </span>
         </div>
 
@@ -196,6 +219,42 @@ export function AdminDashboard({
               {filter.label} {filter.count}
             </button>
           ))}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <Field label="검색" className="min-w-[190px] flex-1 sm:flex-none">
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="이름·이메일 검색"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="정렬" className="min-w-[130px] flex-1 sm:flex-none">
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as AdminSort)}
+              className={inputClass}
+            >
+              {(Object.keys(SORT_LABEL) as AdminSort[]).map((value) => (
+                <option key={value} value={value}>
+                  {SORT_LABEL[value]}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('')
+              setSort('recent')
+              setStatusFilter('all')
+            }}
+            className={ghostButton}
+          >
+            초기화
+          </button>
         </div>
 
         {actionError && (
@@ -220,9 +279,11 @@ export function AdminDashboard({
           <p className="mt-5 rounded-xl border border-dashed border-[#d6d1ff] bg-[#faf9ff] px-4 py-5 text-sm text-[#8b88a3]">
             {users.length === 0
               ? '아직 등록된 사용자가 없어요.'
-              : statusFilter === 'suspended'
-                ? '이용 정지된 계정이 없어요.'
-                : '조건에 맞는 사용자가 없어요.'}
+              : normalizedQuery
+                ? '검색 결과가 없어요.'
+                : statusFilter === 'suspended'
+                  ? '이용 정지된 계정이 없어요.'
+                  : '조건에 맞는 사용자가 없어요.'}
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-[#f1eef9]">

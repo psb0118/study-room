@@ -6,7 +6,9 @@ import { useChildProfile } from '../hooks/useProfile'
 import type { UserProfile } from '../types'
 import { AppShell, type View } from './AppShell'
 import { Dashboard } from './Dashboard'
+import { Exams } from './Exams'
 import { Goals } from './Goals'
+import { Journal } from './Journal'
 import { Plans } from './Plans'
 import { Records } from './Records'
 import { Schedule } from './Schedule'
@@ -116,6 +118,16 @@ export function AdminStudentReadOnlyPreview({
           <Records
             planner={readOnlyPlanner}
             onNavigate={setView}
+            readOnly
+          />
+        )
+      case 'journal':
+        return <Journal uid={student.uid} readOnly />
+      case 'exams':
+        return (
+          <Exams
+            uid={student.uid}
+            subjects={readOnlyPlanner.subjects}
             readOnly
           />
         )

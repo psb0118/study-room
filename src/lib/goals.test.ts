@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   normalizeWeeklyGoals,
+  suggestWeeklyGoals,
   weeklyGoalRows,
   weeklyGoalSummary,
 } from './goals'
@@ -26,6 +27,10 @@ const record: StudyRecord = {
   durationMs: 30 * 60_000,
   memo: '',
   createdAt: 2,
+}
+
+function makeRecord(dateKey: string, durationMs: number): StudyRecord {
+  return { ...record, id: `record-${dateKey}`, dateKey, durationMs }
 }
 
 describe('weekly goals', () => {
@@ -81,5 +86,20 @@ describe('weekly goals', () => {
 
   it('returns no summary when there are no active goals', () => {
     expect(weeklyGoalSummary([subject], {}, [record], '2026-11-11')).toBeNull()
+  })
+
+  it('suggests goals from the previous four full weeks', () => {
+    const records = [
+      makeRecord('2026-10-13', 60 * 60_000),
+      makeRecord('2026-10-20', 120 * 60_000),
+      makeRecord('2026-10-27', 60 * 60_000),
+      makeRecord('2026-11-03', 120 * 60_000),
+      // 현재 주 기록은 제안 평균에 넣지 않는다.
+      makeRecord('2026-11-11', 600 * 60_000),
+    ]
+    expect(suggestWeeklyGoals([subject], records, '2026-11-11')).toEqual({
+      math: 90,
+    })
+    expect(suggestWeeklyGoals([subject], [], '2026-11-11')).toEqual({})
   })
 })

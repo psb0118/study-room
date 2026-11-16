@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import type { PlannerApi } from '../hooks/usePlanner'
 import {
+  studyHeatmap,
+  type StudyHeatmapLevel,
+} from '../lib/heatmap'
+import {
   dailyTotals,
   formatDateKey,
   formatDuration,
@@ -24,6 +28,16 @@ import {
   panelClass,
 } from './ui'
 
+const HEATMAP_LEVEL_CLASSES: Record<StudyHeatmapLevel, string> = {
+  0: 'bg-[#f1eef9]',
+  1: 'bg-[#e4e0ff]',
+  2: 'bg-[#c9c2ff]',
+  3: 'bg-[#a9a2fb]',
+  4: 'bg-[#7c74f0]',
+}
+
+const HEATMAP_LEGEND_LEVELS: StudyHeatmapLevel[] = [1, 2, 3, 4]
+
 export function Stats({ planner }: { planner: PlannerApi }) {
   const [period, setPeriod] = useState<Period>('week')
 
@@ -46,6 +60,10 @@ export function Stats({ planner }: { planner: PlannerApi }) {
   const week = recentDays(7, dailyTotals(planner.records))
   const max = Math.max(1, top?.[1] ?? 0)
   const today = todayKey()
+  const heatmap = studyHeatmap(planner.records, 12, today)
+  const hasHeatmapRecords = heatmap.some((week) =>
+    week.days.some((day) => day.ms > 0),
+  )
   const report = weeklyReport(planner.plans, planner.records, today)
   const previousWeekMs = totalDuration(
     recordsInPeriod(planner.records, 'week', addDays(today, -7)),
@@ -272,6 +290,61 @@ export function Stats({ planner }: { planner: PlannerApi }) {
           )}
         </section>
       </div>
+
+      <section className={`${panelClass} mt-4 p-5`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-extrabold text-[#3d3a55]">
+              공부 잔디
+            </h2>
+            <p className="mt-0.5 text-xs text-[#a8a5bb]">
+              최근 12주 동안의 하루 공부 시간이에요.
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#a8a5bb]">
+            <span>적음</span>
+            {HEATMAP_LEGEND_LEVELS.map((level) => (
+              <span
+                key={level}
+                className={`h-3 w-3 rounded-[3px] ${HEATMAP_LEVEL_CLASSES[level]}`}
+              />
+            ))}
+            <span>많음</span>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto pb-1">
+          <div
+            role="img"
+            aria-label="최근 12주 공부 잔디"
+            className="flex min-w-max gap-1.5"
+          >
+            {heatmap.map((week) => (
+              <div
+                key={week.days[0]?.key}
+                className="grid grid-rows-7 gap-1.5"
+              >
+                {week.days.map((day) => (
+                  <div
+                    key={day.key}
+                    title={`${formatDateKey(day.key)} · ${formatDuration(day.ms)}`}
+                    className={`h-3.5 w-3.5 rounded-[3px] ${
+                      day.future
+                        ? 'border border-dashed border-[#e9e5f5] bg-white'
+                        : HEATMAP_LEVEL_CLASSES[day.level]
+                    }`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#a8a5bb]">
+          <span>월요일 시작 · 최근 12주</span>
+          {!hasHeatmapRecords && <span>공부 기록이 쌓이면 잔디가 채워져요.</span>}
+        </div>
+      </section>
     </div>
   )
 }

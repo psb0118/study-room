@@ -3,6 +3,7 @@ import type { PlannerApi } from '../hooks/usePlanner'
 import type { ProfileApi } from '../hooks/useProfile'
 import {
   MAX_WEEKLY_GOAL_MINUTES,
+  suggestWeeklyGoals,
   weeklyGoalRows,
   weeklyGoalSummary,
 } from '../lib/goals'
@@ -72,6 +73,30 @@ export function Goals({
   const valueFor = (subjectId: string) =>
     form[subjectId] ?? String(profile.weeklyGoals[subjectId] ?? '')
 
+  const fillSuggested = () => {
+    if (readOnly) return
+    const suggestions = suggestWeeklyGoals(
+      planner.subjects,
+      planner.records,
+    )
+    if (Object.keys(suggestions).length === 0) {
+      setNotice('지난 4주 공부 기록이 없어 채울 목표가 없어요.')
+      setError(null)
+      return
+    }
+    setForm((prev) => {
+      const next = { ...prev }
+      for (const subject of activeSubjects) {
+        if (suggestions[subject.id] !== undefined) {
+          next[subject.id] = String(suggestions[subject.id])
+        }
+      }
+      return next
+    })
+    setNotice('지난 4주 평균으로 입력란을 채웠어요. 저장을 눌러 반영하세요.')
+    setError(null)
+  }
+
   const save = async () => {
     if (readOnly) return
     setError(null)
@@ -108,14 +133,24 @@ export function Goals({
         description="과목별로 이번 주에 공부할 시간을 정하고, 실제 기록과 비교해 보세요."
         action={
           readOnly ? undefined : (
-            <button
-              type="button"
-              onClick={() => void save()}
-              disabled={busy || activeSubjects.length === 0}
-              className={primaryButton}
-            >
-              {busy ? '저장 중…' : '목표 저장'}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={fillSuggested}
+                disabled={busy || activeSubjects.length === 0}
+                className={ghostButton}
+              >
+                최근 4주 평균
+              </button>
+              <button
+                type="button"
+                onClick={() => void save()}
+                disabled={busy || activeSubjects.length === 0}
+                className={primaryButton}
+              >
+                {busy ? '저장 중…' : '목표 저장'}
+              </button>
+            </div>
           )
         }
       />

@@ -16,6 +16,7 @@ import {
 } from '../lib/planner'
 import { addDays } from '../lib/streak'
 import { pointsForPlan } from '../lib/points'
+import type { PlanTemplate } from '../lib/planTemplates'
 import type {
   PlanInput,
   PlanStatus,
@@ -26,6 +27,7 @@ import type {
 } from '../types'
 import type { View } from './AppShell'
 import { FocusTimer } from './FocusTimer'
+import { PlanTemplateBar } from './PlanTemplateBar'
 import {
   EmptyState,
   Field,
@@ -576,6 +578,23 @@ function PlanModal({
     setRepeatError('')
   }
 
+  const applyTemplate = (template: PlanTemplate) => {
+    setForm((prev) => ({
+      ...prev,
+      subjectId: selectable.some((subject) => subject.id === template.subjectId)
+        ? template.subjectId
+        : prev.subjectId,
+      title: template.title,
+      description: template.description,
+      targetMinutes: template.targetMinutes,
+      priority: template.priority,
+      startTime: template.startTime,
+      endTime: template.endTime,
+      memo: template.memo,
+    }))
+    setErrors({})
+  }
+
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const found = validatePlan(form, subjects, Boolean(plan))
@@ -639,6 +658,11 @@ function PlanModal({
         </>
       }
     >
+      <PlanTemplateBar
+        form={form}
+        subjects={selectable}
+        onApply={applyTemplate}
+      />
       <form
         id="plan-form"
         onSubmit={submit}

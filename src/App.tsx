@@ -5,8 +5,10 @@ import { AdminStudentPreview } from './components/AdminStudentPreview'
 import { AdminStudentReadOnlyPreview } from './components/AdminStudentReadOnlyPreview'
 import { AppShell, type View } from './components/AppShell'
 import { Dashboard } from './components/Dashboard'
+import { Exams } from './components/Exams'
 import { Family } from './components/Family'
 import { Goals } from './components/Goals'
+import { Journal } from './components/Journal'
 import { Leaderboard } from './components/Leaderboard'
 import { Lobby } from './components/Lobby'
 import { Login } from './components/Login'
@@ -202,6 +204,10 @@ function StudentWorkspace({
         return <Subjects planner={planner} />
       case 'records':
         return <Records planner={planner} onNavigate={setView} />
+      case 'journal':
+        return <Journal uid={user.uid} />
+      case 'exams':
+        return <Exams uid={user.uid} subjects={planner.subjects} />
       case 'goals':
         return (
           <Goals
@@ -350,6 +356,16 @@ function LinkedParentWorkspace({
     switch (view) {
       case 'plans':
         return <Plans planner={planner} onNavigate={onNavigate} role="parent" />
+      case 'journal':
+        return <Journal uid={activeChildUid} readOnly />
+      case 'exams':
+        return (
+          <Exams
+            uid={activeChildUid}
+            subjects={planner.subjects}
+            readOnly
+          />
+        )
       case 'schedule':
         return <Schedule planner={planner} onNavigate={onNavigate} />
       case 'stats':

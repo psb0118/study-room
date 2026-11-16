@@ -1,13 +1,15 @@
 import type { StudyRecord, Subject } from '../types'
 import {
+  recordDateKey,
   recordsInPeriod,
   startOfWeek,
   subjectTotals,
   todayKey,
 } from './planner'
-import { daysBetween } from './streak'
+import { addDays, daysBetween } from './streak'
 
 export const MAX_WEEKLY_GOAL_MINUTES = 7 * 24 * 60
+export const WEEKLY_GOAL_SUGGESTION_WEEKS = 4
 
 /** 과목별 주간 목표(분)를 저장 가능한 형태로 정리한다. */
 export function normalizeWeeklyGoals(value: unknown): Record<string, number> {
@@ -70,6 +72,40 @@ export function weeklyGoalRows(
           : 0,
       }
     })
+}
+
+/**
+ * 지난 4주(월~일)의 과목별 평균 공부 시간을 10분 단위로 반올림해
+ * 다음 주간 목표의 초안을 만든다. 기록이 없는 과목은 제안하지 않는다.
+ */
+export function suggestWeeklyGoals(
+  subjects: Subject[],
+  records: StudyRecord[],
+  today = todayKey(),
+  weeks = WEEKLY_GOAL_SUGGESTION_WEEKS,
+): Record<string, number> {
+  const weekCount = Math.max(1, Math.trunc(weeks))
+  const end = addDays(startOfWeek(today), -1)
+  const start = addDays(end, -(weekCount * 7 - 1))
+  const totals = subjectTotals(
+    records.filter((record) => {
+      const key = recordDateKey(record)
+      return key >= start && key <= end
+    }),
+  )
+
+  const suggestions: Record<string, number> = {}
+  for (const subject of subjects) {
+    if (subject.archived) continue
+    const averageMs = (totals[subject.id] ?? 0) / weekCount
+    if (averageMs <= 0) continue
+    const minutes = Math.max(
+      10,
+      Math.round(averageMs / 60_000 / 10) * 10,
+    )
+    suggestions[subject.id] = Math.min(MAX_WEEKLY_GOAL_MINUTES, minutes)
+  }
+  return suggestions
 }
 
 /** 이번 주 전체 목표와 실제 기록을 합산해 현재 페이스를 계산한다. */
