@@ -1,5 +1,11 @@
 import type { StudyRecord, Subject } from '../types'
-import { recordsInPeriod, subjectTotals, todayKey } from './planner'
+import {
+  recordsInPeriod,
+  startOfWeek,
+  subjectTotals,
+  todayKey,
+} from './planner'
+import { daysBetween } from './streak'
 
 export const MAX_WEEKLY_GOAL_MINUTES = 7 * 24 * 60
 
@@ -25,6 +31,16 @@ export interface WeeklyGoalRow {
   targetMinutes: number
   studiedMs: number
   progress: number
+}
+
+export interface WeeklyGoalSummary {
+  targetMinutes: number
+  targetMs: number
+  studiedMs: number
+  progress: number
+  remainingMs: number
+  expectedProgress: number
+  paceDelta: number
 }
 
 /** 이번 주 과목별 목표와 실제 기록을 비교한다. */
@@ -54,4 +70,37 @@ export function weeklyGoalRows(
           : 0,
       }
     })
+}
+
+/** 이번 주 전체 목표와 실제 기록을 합산해 현재 페이스를 계산한다. */
+export function weeklyGoalSummary(
+  subjects: Subject[],
+  goals: Record<string, number>,
+  records: StudyRecord[],
+  today = todayKey(),
+): WeeklyGoalSummary | null {
+  const rows = weeklyGoalRows(subjects, goals, records, today)
+  if (rows.length === 0) return null
+
+  const targetMinutes = rows.reduce((sum, row) => sum + row.targetMinutes, 0)
+  const studiedMs = rows.reduce((sum, row) => sum + row.studiedMs, 0)
+  const targetMs = targetMinutes * 60_000
+  const progress = targetMs
+    ? Math.min(100, Math.round((studiedMs / targetMs) * 100))
+    : 0
+  const elapsedDays = Math.max(
+    1,
+    Math.min(7, daysBetween(startOfWeek(today), today) + 1),
+  )
+  const expectedProgress = Math.round((elapsedDays / 7) * 100)
+
+  return {
+    targetMinutes,
+    targetMs,
+    studiedMs,
+    progress,
+    remainingMs: Math.max(0, targetMs - studiedMs),
+    expectedProgress,
+    paceDelta: progress - expectedProgress,
+  }
 }

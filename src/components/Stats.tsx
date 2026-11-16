@@ -14,6 +14,7 @@ import {
   withinPeriod,
   type Period,
 } from '../lib/planner'
+import { addDays } from '../lib/streak'
 import {
   EmptyState,
   PageHeader,
@@ -46,6 +47,10 @@ export function Stats({ planner }: { planner: PlannerApi }) {
   const max = Math.max(1, top?.[1] ?? 0)
   const today = todayKey()
   const report = weeklyReport(planner.plans, planner.records, today)
+  const previousWeekMs = totalDuration(
+    recordsInPeriod(planner.records, 'week', addDays(today, -7)),
+  )
+  const weekDeltaMs = report.studyMs - previousWeekMs
   const weekRecords = recordsInPeriod(planner.records, 'week', today)
   const weekTop = Object.entries(subjectTotals(weekRecords)).sort(
     (a, b) => b[1] - a[1],
@@ -128,7 +133,7 @@ export function Stats({ planner }: { planner: PlannerApi }) {
           </span>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-[#f1eef9] bg-[#faf9ff] px-3.5 py-3">
             <div className="text-[11px] font-bold text-[#a8a5bb]">완료율</div>
             <div className="mt-1 text-xl font-extrabold text-[#6f68e8]">
@@ -147,6 +152,24 @@ export function Stats({ planner }: { planner: PlannerApi }) {
             <div className="text-[11px] font-bold text-[#a8a5bb]">연속 학습</div>
             <div className="mt-1 text-xl font-extrabold text-[#3f9f7f]">
               {report.streak}일
+            </div>
+          </div>
+          <div className="rounded-xl border border-[#f1eef9] bg-[#faf9ff] px-3.5 py-3">
+            <div className="text-[11px] font-bold text-[#a8a5bb]">
+              지난주 대비
+            </div>
+            <div
+              className={`mt-1 text-xl font-extrabold ${
+                weekDeltaMs > 0
+                  ? 'text-[#3f9f7f]'
+                  : weekDeltaMs < 0
+                    ? 'text-[#b26a3f]'
+                    : 'text-[#3d3a55]'
+              }`}
+            >
+              {weekDeltaMs === 0
+                ? '변화 없음'
+                : `${weekDeltaMs > 0 ? '+' : '-'}${formatDuration(Math.abs(weekDeltaMs))}`}
             </div>
           </div>
         </div>

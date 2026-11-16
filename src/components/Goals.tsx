@@ -4,6 +4,7 @@ import type { ProfileApi } from '../hooks/useProfile'
 import {
   MAX_WEEKLY_GOAL_MINUTES,
   weeklyGoalRows,
+  weeklyGoalSummary,
 } from '../lib/goals'
 import { formatDuration } from '../lib/planner'
 import {
@@ -48,6 +49,25 @@ export function Goals({
     profile.weeklyGoals,
     planner.records,
   )
+  const summary = weeklyGoalSummary(
+    planner.subjects,
+    profile.weeklyGoals,
+    planner.records,
+  )
+  const paceClass = summary
+    ? summary.paceDelta > 0
+      ? 'bg-[#eafaf1] text-[#3f9f7f]'
+      : summary.paceDelta < 0
+        ? 'bg-[#fff5e9] text-[#b26a3f]'
+        : 'bg-[#f1eeff] text-[#6a63c9]'
+    : ''
+  const paceLabel = summary
+    ? summary.paceDelta > 0
+      ? `예상보다 ${summary.paceDelta}%p 앞서요`
+      : summary.paceDelta < 0
+        ? `예상보다 ${Math.abs(summary.paceDelta)}%p 느려요`
+        : '예상 페이스와 같아요'
+    : ''
 
   const valueFor = (subjectId: string) =>
     form[subjectId] ?? String(profile.weeklyGoals[subjectId] ?? '')
@@ -99,6 +119,54 @@ export function Goals({
           )
         }
       />
+
+      {summary && (
+        <section className={`${panelClass} mb-4 p-6`}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-extrabold tracking-[0.08em] text-[#7c74f0] uppercase">
+                WEEKLY GOAL PACE
+              </p>
+              <h2 className="mt-1 text-base font-extrabold text-[#3d3a55]">
+                이번 주 목표 달성률
+              </h2>
+              <p className="mt-1 text-xs text-[#8b88a3]">
+                {formatDuration(summary.studiedMs)} /{' '}
+                {formatDuration(summary.targetMs)} · 저장된 목표 기준
+              </p>
+            </div>
+            <div className="text-right">
+              <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-extrabold ${paceClass}`}>
+                {paceLabel}
+              </span>
+              <div className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-[#6f68e8]">
+                {summary.progress}%
+              </div>
+            </div>
+          </div>
+          <div
+            role="progressbar"
+            aria-label="이번 주 전체 목표 달성률"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={summary.progress}
+            className="mt-5 h-2.5 overflow-hidden rounded-full bg-[#f1eef9]"
+          >
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#8d86f5] to-[#b9b4ff] transition-all"
+              style={{ width: `${summary.progress}%` }}
+            />
+          </div>
+          <div className="mt-2 flex flex-wrap justify-between gap-2 text-[11px] text-[#a8a5bb]">
+            <span>
+              {summary.remainingMs > 0
+                ? `남은 목표 ${formatDuration(summary.remainingMs)}`
+                : '이번 주 목표를 모두 채웠어요'}
+            </span>
+            <span>오늘까지 예상 페이스 {summary.expectedProgress}%</span>
+          </div>
+        </section>
+      )}
 
       <section className={`${panelClass} p-6`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
