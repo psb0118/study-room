@@ -21,7 +21,11 @@ export function normalizePlanReminderOffset(value: unknown): number {
 
 function isDateKey(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
-  return !Number.isNaN(new Date(`${value}T12:00:00Z`).valueOf())
+  // 2026-02-31처럼 Date가 다음 달로 자동 보정하는 값도 거부한다.
+  const date = new Date(`${value}T12:00:00Z`)
+  return (
+    !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
+  )
 }
 
 export function addDateKey(dateKey: string, days: number): string {

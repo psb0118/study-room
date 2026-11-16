@@ -50,6 +50,12 @@ export function reminderMinutes(value: unknown): number | null {
   return Number(match[1]) * 60 + Number(match[2])
 }
 
+function shiftDateKey(dateKey: string, days: number): string {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day + days))
+  return date.toISOString().slice(0, 10)
+}
+
 /**
  * 5분 주기 실행에서 현재 시각이 알림 시간 직후 5분 이내인지 확인한다.
  * 함수가 5분 넘게 지연되면 중복 발송보다 누락을 선택한다.
@@ -65,5 +71,11 @@ export function isReminderWindow(
   if (target === null) return { due: false, dateKey: clock.dateKey }
 
   const diff = (clock.minutes - target + 24 * 60) % (24 * 60)
-  return { due: diff < windowMinutes, dateKey: clock.dateKey }
+  // 23:58 알림이 자정 직후 실행되면 그 알림의 날짜는 전날이다.
+  // 현재 날짜로 기록하면 다음 날 같은 시각 알림이 중복으로 건너뛰어진다.
+  const dateKey =
+    clock.minutes >= target
+      ? clock.dateKey
+      : shiftDateKey(clock.dateKey, -1)
+  return { due: diff < windowMinutes, dateKey }
 }

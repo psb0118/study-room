@@ -190,7 +190,11 @@ export function Records({
           <EmptyState
             icon="▤"
             title="아직 공부 기록이 없어요"
-            description="스터디 룸에서 집중하거나 직접 기록을 추가해 보세요."
+            description={
+              readOnly
+                ? '이 학생은 아직 공부 기록이 없어요.'
+                : '스터디 룸에서 집중하거나 직접 기록을 추가해 보세요.'
+            }
             action={
               readOnly ? undefined : (
                 <div className="flex flex-wrap justify-center gap-2">

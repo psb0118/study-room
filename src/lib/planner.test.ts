@@ -6,6 +6,7 @@ import {
   emptyPlanInput,
   filterPlans,
   formatDuration,
+  isDateKey,
   repeatDates,
   startOfWeek,
   subjectTotals,
@@ -177,6 +178,17 @@ describe('plan validation', () => {
     const input = validInput({ subjectId: 'old' })
     expect(validatePlan(input, [subject('old', true)]).subjectId).toBeTruthy()
     expect(validatePlan(input, [subject('old', true)], true)).toEqual({})
+  })
+
+  it('달력에 없는 날짜를 거부한다', () => {
+    expect(isDateKey('2026-11-11')).toBe(true)
+    expect(isDateKey('2026-02-29')).toBe(false)
+    expect(isDateKey('2026-02-31')).toBe(false)
+    expect(isDateKey('2026-04-31')).toBe(false)
+    expect(
+      validatePlan(validInput({ plannedDate: '2026-02-31' }), [subject('s1')])
+        .plannedDate,
+    ).toBeTruthy()
   })
 })
 

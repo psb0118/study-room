@@ -17,8 +17,13 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging()
 
+// 이 워커는 /push/ 하위 scope에서 실행되므로 앱 루트는 한 단계 위다.
 function appUrl() {
-  return new URL('./', self.location).href
+  return new URL('../', self.registration.scope).href
+}
+
+function iconUrl() {
+  return new URL('../icons/icon-192.png', self.registration.scope).href
 }
 
 messaging.onBackgroundMessage((payload) => {
@@ -28,8 +33,8 @@ messaging.onBackgroundMessage((payload) => {
     notification.title || '하루결 공부 알림',
     {
       body: notification.body || '오늘의 공부 계획을 확인해 보세요.',
-      icon: new URL('icons/icon-192.png', self.location).href,
-      badge: new URL('icons/icon-192.png', self.location).href,
+      icon: iconUrl(),
+      badge: iconUrl(),
       data: { url: data.url || appUrl() },
     },
   )

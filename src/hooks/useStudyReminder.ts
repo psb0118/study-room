@@ -18,6 +18,7 @@ export function useStudyReminder(profile: UserProfile) {
     if (profile.pushEnabled && isPushConfigured()) return
     if (!profile.reminderEnabled || !profile.reminderTime) return
     if (typeof window === 'undefined' || !('Notification' in window)) return
+    if (Notification.permission !== 'granted') return
 
     let timer: number | undefined
     const schedule = () => {
@@ -25,6 +26,7 @@ export function useStudyReminder(profile: UserProfile) {
       if (!next) return
       const delay = Math.max(0, next.getTime() - Date.now())
       timer = window.setTimeout(() => {
+        if (Notification.permission !== 'granted') return
         const key = `${DAILY_NOTICE_PREFIX}${profile.uid}:${todayKey()}`
         try {
           if (localStorage.getItem(key)) {

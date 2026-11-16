@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore'
 import { fs } from '../firebase'
 import type { ImportBundle } from '../lib/exportData'
-import { SUBJECT_COLORS, todayKey } from '../lib/planner'
+import { SUBJECT_COLORS, isDateKey, todayKey } from '../lib/planner'
 import { STUDY_USERS } from '../lib/stats'
 import type {
   PlanInput,
@@ -39,12 +39,13 @@ function asSubject(id: string, data: Record<string, unknown>): Subject {
 function asPlan(id: string, data: Record<string, unknown>): StudyPlan {
   const priority = data.priority
   const status = data.status
+  const plannedDate = String(data.plannedDate ?? '')
   return {
     id,
     subjectId: String(data.subjectId ?? ''),
     title: String(data.title ?? '제목 없음'),
     description: String(data.description ?? ''),
-    plannedDate: String(data.plannedDate ?? todayKey()),
+    plannedDate: isDateKey(plannedDate) ? plannedDate : todayKey(),
     startTime: String(data.startTime ?? ''),
     endTime: String(data.endTime ?? ''),
     targetMinutes: Number(data.targetMinutes) || 30,
@@ -358,10 +359,10 @@ export function usePlanner(uid: string) {
       if (!Number.isFinite(minutes) || minutes < 1 || minutes > 1440) {
         throw new Error('공부 시간은 1~1440분 사이로 입력해 주세요.')
       }
-      const ended = new Date(`${input.date}T12:00:00`)
-      if (Number.isNaN(ended.valueOf())) {
+      if (!isDateKey(input.date)) {
         throw new Error('올바른 날짜를 선택해 주세요.')
       }
+      const ended = new Date(`${input.date}T12:00:00`)
       const started = new Date(ended.getTime() - minutes * 60_000)
       await setDoc(doc(recordsCol), {
         subjectId: input.subjectId,

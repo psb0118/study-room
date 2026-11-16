@@ -117,7 +117,9 @@ export function Goals({
 
         {activeSubjects.length === 0 ? (
           <p className="mt-5 rounded-xl border border-dashed border-[#d6d1ff] bg-[#faf9ff] px-4 py-5 text-sm text-[#8b88a3]">
-            먼저 과목을 추가하면 주간 목표를 설정할 수 있어요.
+            {readOnly
+              ? '이 학생은 아직 등록한 과목이 없어요.'
+              : '먼저 과목을 추가하면 주간 목표를 설정할 수 있어요.'}
           </p>
         ) : (
           <div className="mt-5 space-y-4">

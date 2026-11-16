@@ -232,7 +232,11 @@ export function Dashboard({
               <EmptyState
                 icon="✦"
                 title="오늘은 아직 비어 있어요"
-                description="작은 계획 하나부터 시작해볼까요?"
+                description={
+                  readOnly
+                    ? '이 학생은 오늘 등록된 계획이 없어요.'
+                    : '작은 계획 하나부터 시작해볼까요?'
+                }
                 action={
                   readOnly ? undefined : (
                     <button

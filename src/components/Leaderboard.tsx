@@ -188,6 +188,7 @@ export function Leaderboard({
                   entry={entry}
                   rank={index + 4}
                   highlighted={entry.uid === highlightUid}
+                  highlightLabel={viewerRole === 'parent' ? '자녀' : '나'}
                 />
               ))}
             </section>
@@ -209,10 +210,12 @@ function RankRow({
   entry,
   rank,
   highlighted,
+  highlightLabel,
 }: {
   entry: LeaderboardEntry
   rank: number
   highlighted: boolean
+  highlightLabel: string
 }) {
   const info = levelInfo(entry.points)
   return (
@@ -230,7 +233,7 @@ function RankRow({
           {entry.name}
           {highlighted && (
             <span className="ml-1.5 rounded-full bg-[#f1eeff] px-1.5 py-0.5 text-[9px] text-[#6a63c9]">
-              나
+              {highlightLabel}
             </span>
           )}
         </div>

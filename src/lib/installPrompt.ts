@@ -36,11 +36,16 @@ export function subscribeInstallPrompt(
 export async function promptInstall(): Promise<boolean> {
   if (!deferredPrompt) return false
   const event = deferredPrompt
-  await event.prompt()
-  const choice = await event.userChoice
-  deferredPrompt = null
-  listeners.forEach((listener) => listener(null))
-  return choice.outcome === 'accepted'
+  try {
+    await event.prompt()
+    const choice = await event.userChoice
+    return choice.outcome === 'accepted'
+  } catch {
+    return false
+  } finally {
+    deferredPrompt = null
+    listeners.forEach((listener) => listener(null))
+  }
 }
 
 export function isStandalone(): boolean {

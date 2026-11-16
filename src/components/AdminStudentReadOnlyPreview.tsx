@@ -186,6 +186,7 @@ export function AdminStudentReadOnlyPreview({
       onLogout={onExit}
       logoutLabel="관리자로 돌아가기"
       preview
+      readOnlyPreview
     >
       <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#d6d1ff] bg-[#faf9ff] px-4 py-3.5">
         <div className="min-w-0">

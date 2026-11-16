@@ -8,15 +8,31 @@ import {
 
 const DISMISS_KEY = 'haru-gyeol-install-dismissed'
 
+function wasDismissed(): boolean {
+  try {
+    return sessionStorage.getItem(DISMISS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function rememberDismissed(): void {
+  try {
+    sessionStorage.setItem(DISMISS_KEY, '1')
+  } catch {
+    // 저장소를 쓸 수 없어도 현재 화면에서는 닫힌 상태를 유지한다.
+  }
+}
+
 /** Android/Chrome는 설치 버튼을, iOS Safari는 홈 화면 추가 안내를 보여준다. */
 export function InstallPrompt() {
   const [available, setAvailable] = useState(Boolean(getInstallPrompt()))
-  const [isIos] = useState(() =>
-    /iphone|ipad|ipod/i.test(navigator.userAgent),
+  const [isIos] = useState(
+    () =>
+      typeof navigator !== 'undefined' &&
+      /iphone|ipad|ipod/i.test(navigator.userAgent),
   )
-  const [dismissed, setDismissed] = useState(
-    () => sessionStorage.getItem(DISMISS_KEY) === '1',
-  )
+  const [dismissed, setDismissed] = useState(wasDismissed)
 
   useEffect(() => {
     if (isStandalone()) return
@@ -26,7 +42,7 @@ export function InstallPrompt() {
   if (dismissed || isStandalone() || (!available && !isIos)) return null
 
   const dismiss = () => {
-    sessionStorage.setItem(DISMISS_KEY, '1')
+    rememberDismissed()
     setDismissed(true)
   }
 

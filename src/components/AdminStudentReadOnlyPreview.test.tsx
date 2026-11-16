@@ -99,6 +99,8 @@ describe('AdminStudentReadOnlyPreview', () => {
 
     expect(html).toContain('테스트 학생 학생의 실제 플래너')
     expect(html).toContain('읽기 전용')
+    expect(html).toContain('실제 학생 데이터를 읽기만 하며')
+    expect(html).not.toContain('데모 데이터로만 동작')
     expect(html).toContain('수학 문제집 2단원')
     expect(html).not.toContain('계획 추가')
     expect(html).not.toContain('스터디 룸 입장')

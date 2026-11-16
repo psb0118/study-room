@@ -55,6 +55,8 @@ interface AppShellProps {
   onLogout: () => void
   logoutLabel?: string
   preview?: boolean
+  /** 실제 학생 데이터를 읽는 읽기 전용 미리보기 */
+  readOnlyPreview?: boolean
   children: ReactNode
 }
 
@@ -67,6 +69,7 @@ export function AppShell({
   onLogout,
   logoutLabel = '로그아웃',
   preview = false,
+  readOnlyPreview = false,
   children,
 }: AppShellProps) {
   const nav =
@@ -79,7 +82,9 @@ export function AppShell({
         : STUDENT_MOBILE
   const mobileNav = nav.filter((item) => mobileIds.includes(item.id))
   const roleLabel = preview
-    ? '학생 미리보기'
+    ? readOnlyPreview
+      ? '읽기 전용 미리보기'
+      : '학생 미리보기'
     : role === 'parent'
       ? '부모 관리'
       : role === 'admin'
@@ -147,10 +152,16 @@ export function AppShell({
             </div>
           </div>
           <strong className="block text-[11px] text-[#5f57c8]">
-            {preview ? '미리보기 모드' : '내 계정에 안전하게 저장 중'}
+            {preview
+              ? readOnlyPreview
+                ? '읽기 전용 미리보기'
+                : '미리보기 모드'
+              : '내 계정에 안전하게 저장 중'}
           </strong>
           {preview
-            ? '데모 데이터로만 동작하며 실제 계정에는 저장되지 않습니다.'
+            ? readOnlyPreview
+              ? '실제 학생 데이터를 읽기만 하며 수정·알림은 발생하지 않습니다.'
+              : '데모 데이터로만 동작하며 실제 계정에는 저장되지 않습니다.'
             : role === 'parent'
               ? '자녀의 계획과 포인트가 Firebase에 동기화됩니다.'
               : role === 'admin'

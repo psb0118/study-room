@@ -86,6 +86,9 @@ function parsePlan(value: unknown, subjectIds: Set<string>): StudyPlan {
   if (endTime && !isTime(endTime)) {
     throw new Error('계획 종료 시간이 올바르지 않아요.')
   }
+  if (startTime && endTime && endTime <= startTime) {
+    throw new Error('계획 종료 시간은 시작 시간보다 늦어야 해요.')
+  }
 
   const subjectId = text(raw.subjectId)
   if (!subjectIds.has(subjectId)) {

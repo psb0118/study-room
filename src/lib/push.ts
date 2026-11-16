@@ -14,6 +14,30 @@ function deviceStorageKey(uid: string): string {
   return `${TOKEN_STORAGE_PREFIX}${uid}`
 }
 
+function readStoredDeviceId(uid: string): string | null {
+  try {
+    return localStorage.getItem(deviceStorageKey(uid))
+  } catch {
+    return null
+  }
+}
+
+function storeDeviceId(uid: string, id: string): void {
+  try {
+    localStorage.setItem(deviceStorageKey(uid), id)
+  } catch {
+    // 저장소를 쓸 수 없어도 알림 등록 자체는 유지한다.
+  }
+}
+
+function clearStoredDeviceId(uid: string): void {
+  try {
+    localStorage.removeItem(deviceStorageKey(uid))
+  } catch {
+    // 저장소를 쓸 수 없어도 로그아웃은 계속한다.
+  }
+}
+
 async function registerPushWorker(): Promise<ServiceWorkerRegistration> {
   const base = baseUrl()
   const scope = new URL('push/', base).pathname
@@ -101,7 +125,7 @@ export async function registerPushToken(uid: string): Promise<PushResult> {
       createdAt: Date.now(),
       lastSeenAt: Date.now(),
     })
-    localStorage.setItem(deviceStorageKey(uid), id)
+    storeDeviceId(uid, id)
     return { ok: true }
   } catch (e) {
     return {
@@ -116,7 +140,7 @@ export async function registerPushToken(uid: string): Promise<PushResult> {
 
 /** 로그아웃·알림 끄기 시 현재 기기 토큰을 정리한다. */
 export async function removePushToken(uid: string): Promise<void> {
-  let id = localStorage.getItem(deviceStorageKey(uid))
+  let id = readStoredDeviceId(uid)
   if (!id && VAPID_KEY && (await isPushSupported())) {
     try {
       const token = await getToken(getMessaging(app), { vapidKey: VAPID_KEY })
@@ -131,7 +155,7 @@ export async function removePushToken(uid: string): Promise<void> {
   } catch {
     // 이미 삭제됐거나 권한이 없어도 로그아웃은 계속한다.
   } finally {
-    localStorage.removeItem(deviceStorageKey(uid))
+    clearStoredDeviceId(uid)
   }
 }
 

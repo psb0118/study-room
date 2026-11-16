@@ -38,12 +38,12 @@ export function Stats({ planner }: { planner: PlannerApi }) {
   const top = entries[0]
   const targetMs = planner.plans
     .filter((p) => withinPeriod(p.plannedDate, period))
-    .reduce((sum, p) => sum + p.targetMinutes * 60_000, 0)
+    .reduce((sum, p) => sum + Math.max(0, p.targetMinutes) * 60_000, 0)
   const progress = targetMs
     ? Math.min(100, Math.round((total / targetMs) * 100))
     : 0
   const week = recentDays(7, dailyTotals(planner.records))
-  const max = top?.[1] ?? 1
+  const max = Math.max(1, top?.[1] ?? 0)
   const today = todayKey()
   const report = weeklyReport(planner.plans, planner.records, today)
   const weekRecords = recordsInPeriod(planner.records, 'week', today)

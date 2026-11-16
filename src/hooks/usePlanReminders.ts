@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { showBrowserNotification } from '../lib/notifications'
 import { isPushConfigured } from '../lib/push'
-import { todayKey } from '../lib/planner'
+import { isDateKey, todayKey } from '../lib/planner'
 import { dateKey } from '../lib/streak'
 import type { StudyPlan, UserProfile } from '../types'
 
@@ -30,6 +30,7 @@ export function usePlanReminders(
     if (profile.pushEnabled && isPushConfigured()) return
     if (!profile.planReminderEnabled) return
     if (typeof window === 'undefined' || !('Notification' in window)) return
+    if (Notification.permission !== 'granted') return
 
     const now = new Date()
     const today = todayKey()
@@ -38,6 +39,7 @@ export function usePlanReminders(
 
     for (const plan of plans) {
       if (plan.status === 'completed') continue
+      if (!isDateKey(plan.plannedDate)) continue
       if (!plan.startTime || !/^([01]\d|2[0-3]):[0-5]\d$/.test(plan.startTime)) {
         continue
       }
@@ -65,6 +67,7 @@ export function usePlanReminders(
 
       const timer = window.setTimeout(() => {
         if (shown.current.has(key)) return
+        if (Notification.permission !== 'granted') return
         try {
           if (localStorage.getItem(key)) return
           localStorage.setItem(key, '1')

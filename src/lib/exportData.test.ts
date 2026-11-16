@@ -178,4 +178,23 @@ describe('parseImportBundle', () => {
       ),
     ).toThrow()
   })
+
+  it('rejects plans whose end time is not after the start time', () => {
+    const bundle = buildExportBundle({
+      exportedBy: student,
+      target: student,
+      subjects: [subject],
+      plans: [plan],
+      records: [record],
+    })
+
+    expect(() =>
+      parseImportBundle(
+        JSON.stringify({
+          ...bundle,
+          plans: [{ ...plan, startTime: '18:00', endTime: '17:00' }],
+        }),
+      ),
+    ).toThrow()
+  })
 })

@@ -282,7 +282,12 @@ export function isTime(value: string): boolean {
 }
 
 export function isDateKey(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(dateFromKey(value).valueOf())
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  // 2026-02-31처럼 Date가 다음 달로 자동 보정하는 값도 거부한다.
+  const date = new Date(`${value}T12:00:00Z`)
+  return (
+    !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
+  )
 }
 
 export function formatDateKey(
@@ -317,10 +322,7 @@ export function validatePlan(
   if (!title) errors.title = '제목을 입력해 주세요.'
   else if (title.length > 100) errors.title = '제목은 100자 이하여야 해요.'
 
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(input.plannedDate) ||
-    Number.isNaN(dateFromKey(input.plannedDate).valueOf())
-  ) {
+  if (!isDateKey(input.plannedDate)) {
     errors.plannedDate = '올바른 날짜를 선택해 주세요.'
   }
 

@@ -247,7 +247,10 @@ export function Plans({
         <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f2e0bd] bg-[#fff9ec] px-4 py-3 text-sm text-[#8f7b58]">
           <span>
             <strong className="font-extrabold">{overdue.length}개</strong>의
-            밀린 계획이 있어요. 오늘로 옮겨 다시 시작해 보세요.
+            밀린 계획이 있어요.{' '}
+            {readOnly
+              ? '읽기 전용 미리보기에서는 옮길 수 없어요.'
+              : '오늘로 옮겨 다시 시작해 보세요.'}
           </span>
           {!readOnly && (
             <button
@@ -468,7 +471,11 @@ export function Plans({
             <EmptyState
               icon="□"
               title="조건에 맞는 계획이 없어요"
-              description="필터를 바꾸거나 새로운 계획을 추가해 보세요."
+              description={
+                readOnly
+                  ? '이 학생의 계획이 아직 없어요.'
+                  : '필터를 바꾸거나 새로운 계획을 추가해 보세요.'
+              }
               action={
                 readOnly ? undefined : (
                   <button type="button" onClick={openNew} className={primaryButton}>

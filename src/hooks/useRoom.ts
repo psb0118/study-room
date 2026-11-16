@@ -31,7 +31,13 @@ export interface RoomActions {
   send: (text: string) => void
   addStroke: (pts: number[], color: string, w: number) => { id: string; saved: Promise<string | null> }
   undoStroke: () => void
-  eraseAt: (x: number, y: number, tol: number) => void
+  eraseAt: (
+    x: number,
+    y: number,
+    tol: number,
+    viewW: number,
+    viewH: number,
+  ) => void
   clearBoard: () => void
 }
 
@@ -240,13 +246,14 @@ export function useRoom(code: string, user: User) {
         const last = own[own.length - 1]
         if (last) void remove(ref(db, `rooms/${code}/board/strokes/${last.id}`))
       },
-      eraseAt: (x, y, tol) => {
+      eraseAt: (x, y, tol, viewW, viewH) => {
+        if (!viewW || !viewH) return
         const hit: Record<string, null> = {}
         for (const s of strokes) {
-          const r = (s.w / 2 + tol) * 1.5
+          const r = s.w / 2 + tol
           for (let i = 0; i + 1 < s.pts.length; i += 2) {
-            const dx = s.pts[i] - x
-            const dy = s.pts[i + 1] - y
+            const dx = s.pts[i] * viewW - x
+            const dy = s.pts[i + 1] * viewH - y
             if (dx * dx + dy * dy <= r * r) {
               hit[s.id] = null
               break

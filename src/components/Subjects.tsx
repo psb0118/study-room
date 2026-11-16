@@ -114,7 +114,11 @@ export function Subjects({ planner, readOnly = false }: SubjectsProps) {
           <EmptyState
             icon="●"
             title="아직 과목이 없어요"
-            description="과목을 만들면 계획과 기록을 더 깔끔하게 정리할 수 있어요."
+            description={
+              readOnly
+                ? '이 학생은 아직 등록한 과목이 없어요.'
+                : '과목을 만들면 계획과 기록을 더 깔끔하게 정리할 수 있어요.'
+            }
             action={
               readOnly ? undefined : (
                 <button
