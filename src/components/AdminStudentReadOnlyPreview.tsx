@@ -99,7 +99,7 @@ export function AdminStudentReadOnlyPreview({
             {error}
           </p>
           <p className="mt-3 rounded-xl bg-[#fff9ec] px-3.5 py-2.5 text-xs leading-relaxed text-[#9a7b4f]">
-            Firestore 규칙에 관리자 읽기 권한이 게시됐는지 확인해 주세요.
+            최신 Firestore 규칙이 Firebase에 배포됐는지 확인해 주세요.
             학생 데이터는 읽기만 하며 수정할 수 없습니다.
           </p>
         </section>

@@ -30,32 +30,26 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
-      - name: Check GCP_SA_KEY secret
-        id: credentials
+      - name: Require GCP_SA_KEY secret
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           if [ -z "$GCP_SA_KEY" ]; then
-            echo "::notice::GCP_SA_KEY secret is not set; skipping Cloud Functions deploy."
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "::error::GCP_SA_KEY secret is not set. Add the Firebase service account JSON in Settings -> Secrets and variables -> Actions."
+            exit 1
           fi
 
       - name: Authenticate to Google Cloud
-        if: steps.credentials.outputs.enabled == 'true'
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Install and build functions
-        if: steps.credentials.outputs.enabled == 'true'
         run: |
           npm --prefix functions ci
           npm --prefix functions run build
 
       - name: Deploy Cloud Functions
-        if: steps.credentials.outputs.enabled == 'true'
         run: |
           npx --yes firebase-tools@15 deploy \
             --only functions \

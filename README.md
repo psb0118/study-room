@@ -146,8 +146,8 @@ GitHub Actions가 배포합니다. `FIREBASE_TOKEN` 대신 **GCP 서비스 계�
    자동 실행됩니다.
 
 다른 Firebase 프로젝트를 사용한다면 저장소 변수 `FIREBASE_PROJECT_ID`를 설정하세요.
-기본값은 `study-room-d0c89`입니다. `GCP_SA_KEY`가 없으면 두 워크플로우는 배포를
-건너뜁니다.
+기본값은 `study-room-d0c89`입니다. `GCP_SA_KEY`가 없으면 두 워크플로우는
+배포를 건너뛰지 않고 실패하며, GitHub Actions 로그에 Secret 설정 안내가 남습니다.
 
 > 서비스 계정 키는 장기 자격 증명입니다. GitHub Secret으로만 보관하고, 노출이
 > 의심되면 키를 즉시 삭제·재발급하세요. 가능하면 Workload Identity Federation
@@ -201,7 +201,8 @@ Cloud Functions와 Cloud Scheduler를 쓰려면 Firebase 프로젝트를 **Blaze
 >
 > `main`에 `functions/**` 또는 `firebase.json` 변경이 푸시되면
 > **Deploy Cloud Functions** 워크플로우가 실행됩니다. `GCP_SA_KEY` Secret이
-> 없으면 배포를 건너뛰고, Secret이 있어도 Blaze 요금제가 아니면 배포가 실패합니다.
+> 없으면 배포를 건너뛰지 않고 실패하며, Secret이 있어도 Blaze 요금제가 아니면
+> 배포가 실패합니다.
 
 ### 5) 호스트 도메인 확인
 
